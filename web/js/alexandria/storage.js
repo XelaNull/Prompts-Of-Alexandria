@@ -450,7 +450,7 @@ function applyRetention(template) {
  * @returns {Array} Templates matching the workflow
  */
 export function getTemplatesForWorkflow(workflowId, workflowName = null) {
-  const normalizedName = workflowName?.toLowerCase().replace(/\.json$/i, '').trim();
+  const normalizedName = workflowName ? workflowName.toLowerCase().replace(/\.json$/i, '').trim() : null;
   return getTemplatesSorted().filter(t => {
     // Direct ID match
     if (t.workflowId === workflowId) return true;
@@ -470,7 +470,7 @@ export function getTemplatesForWorkflow(workflowId, workflowName = null) {
  * @returns {Array} Templates from other workflows
  */
 export function getTemplatesFromOtherWorkflows(workflowId, workflowName = null) {
-  const normalizedName = workflowName?.toLowerCase().replace(/\.json$/i, '').trim();
+  const normalizedName = workflowName ? workflowName.toLowerCase().replace(/\.json$/i, '').trim() : null;
   return getTemplatesSorted().filter(t => {
     if (!t.workflowId) return false; // Legacy templates without workflow
     // Check if it matches current workflow (by ID or name)
