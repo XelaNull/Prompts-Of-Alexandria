@@ -616,7 +616,7 @@ function renderConfigureNodeList() {
     nodes = nodes.filter(n => n.widgets.some(w => w.isDetected));
   } else if (filterType === 'overrides') {
     nodes = nodes.filter(n => n.widgets.some(w => {
-      const key = `${n.type}:${w.name}`;
+      const key = `${n.id}:${w.name}`;
       return key in manualSelections;
     }));
   }
@@ -653,7 +653,7 @@ function renderConfigureNodeList() {
   // Auto-collapse groups that have no detected prompts or overrides
   for (const [groupKey, groupNodes] of groups) {
     const hasRelevant = groupNodes.some(n => n.widgets.some(w => {
-      const key = `${n.type}:${w.name}`;
+      const key = `${n.id}:${w.name}`;
       return w.isDetected || key in manualSelections;
     }));
     if (!hasRelevant && !userExpandedGroups.has(groupKey)) {
@@ -676,7 +676,7 @@ function renderConfigureNodeList() {
     const isGroupCollapsed = collapsedGroups.has(groupType);
     const detectedCount = groupNodes.filter(n => n.widgets.some(w => w.isDetected)).length;
     const overrideCount = groupNodes.filter(n => n.widgets.some(w => {
-      const key = `${n.type}:${w.name}`;
+      const key = `${n.id}:${w.name}`;
       return key in manualSelections;
     })).length;
 
@@ -705,7 +705,7 @@ function renderConfigureNodeList() {
 function renderConfigureNode(node, manualSelections) {
   const hasDetected = node.widgets.some(w => w.isDetected);
   const hasOverride = node.widgets.some(w => {
-    const key = `${node.type}:${w.name}`;
+    const key = `${node.id}:${w.name}`;
     return key in manualSelections;
   });
   const isBypassed = node.mode === 2 || node.mode === 4;
@@ -732,9 +732,10 @@ function renderConfigureNode(node, manualSelections) {
 
 /**
  * Render a widget row for configure mode with override controls
+ * Uses nodeId:widgetName for per-instance overrides
  */
 function renderConfigureWidget(node, widget, manualSelections) {
-  const key = `${node.type}:${widget.name}`;
+  const key = `${node.id}:${widget.name}`;
   const override = manualSelections[key];
   const preview = getValuePreview(widget.value);
 
@@ -752,17 +753,17 @@ function renderConfigureWidget(node, widget, manualSelections) {
       <div class="alexandria-widget-value">${escapeHtml(preview)}</div>
       <div class="alexandria-override-controls">
         <button class="alexandria-override-btn ${state === 'include' ? 'active include' : ''}"
-          data-node-type="${escapeHtml(node.type)}"
+          data-node-id="${node.id}"
           data-widget-name="${escapeHtml(widget.name)}"
           data-override="include"
           title="Always include this widget in saves">✓ Include</button>
         <button class="alexandria-override-btn ${state === 'auto' ? 'active auto' : ''}"
-          data-node-type="${escapeHtml(node.type)}"
+          data-node-id="${node.id}"
           data-widget-name="${escapeHtml(widget.name)}"
           data-override="auto"
           title="Use automatic detection">Auto</button>
         <button class="alexandria-override-btn ${state === 'exclude' ? 'active exclude' : ''}"
-          data-node-type="${escapeHtml(node.type)}"
+          data-node-id="${node.id}"
           data-widget-name="${escapeHtml(widget.name)}"
           data-override="exclude"
           title="Never include this widget in saves">✗ Exclude</button>
@@ -822,7 +823,7 @@ function attachConfigureNodeListListeners(panelEl) {
   // Override buttons
   panelEl.querySelectorAll('.alexandria-override-btn').forEach(btn => {
     btn.onclick = () => {
-      const nodeType = btn.dataset.nodeType;
+      const nodeId = btn.dataset.nodeId;
       const widgetName = btn.dataset.widgetName;
       const overrideType = btn.dataset.override;
 
@@ -830,7 +831,7 @@ function attachConfigureNodeListListeners(panelEl) {
       if (overrideType === 'include') value = true;
       else if (overrideType === 'exclude') value = false;
 
-      Storage.setManualSelection(nodeType, widgetName, value);
+      Storage.setManualSelection(nodeId, widgetName, value);
       renderConfigureContent(panelEl);
     };
   });

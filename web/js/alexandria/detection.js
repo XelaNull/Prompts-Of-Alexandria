@@ -450,6 +450,7 @@ function detectByWidgetType() {
 /**
  * Method 7: Manual Overrides (100% confidence for includes, marks exclusions)
  * Applies user-specified inclusions and exclusions.
+ * Keys are now per-instance: "nodeId:widgetName" for specific node control.
  *
  * @param {Map} results - Existing detection results (mutated)
  * @returns {Map} Modified results
@@ -461,34 +462,33 @@ function applyManualOverrides(results) {
   // First pass: add manual inclusions
   for (const [key, include] of Object.entries(manualSelections)) {
     if (!include) continue;
-    const [nodeType, widgetName] = key.split(':');
-    const nodes = app.graph._nodes.filter(n => n.type === nodeType);
+    const [nodeIdStr, widgetName] = key.split(':');
+    const nodeId = parseInt(nodeIdStr, 10);
+    const node = app.graph._nodes.find(n => n.id === nodeId);
 
-    for (const node of nodes) {
-      const widget = node.widgets?.find(w => w.name === widgetName);
-      if (!widget) continue;
+    if (!node) continue; // Node no longer exists in workflow
 
-      const resultKey = `${node.id}:${widget.name}`;
-      results.set(resultKey, {
-        node,
-        widget,
-        confidence: 100,
-        method: 'user_manual_selection'
-      });
-    }
+    const widget = node.widgets?.find(w => w.name === widgetName);
+    if (!widget) continue;
+
+    const resultKey = `${node.id}:${widget.name}`;
+    results.set(resultKey, {
+      node,
+      widget,
+      confidence: 100,
+      method: 'user_manual_selection'
+    });
   }
 
   // Second pass: mark exclusions
   for (const [key, include] of Object.entries(manualSelections)) {
     if (include !== false) continue;
-    const [nodeType, widgetName] = key.split(':');
-    const nodes = app.graph._nodes.filter(n => n.type === nodeType);
+    const [nodeIdStr, widgetName] = key.split(':');
+    const nodeId = parseInt(nodeIdStr, 10);
 
-    for (const node of nodes) {
-      const resultKey = `${node.id}:${widgetName}`;
-      if (results.has(resultKey)) {
-        results.get(resultKey).excluded = true;
-      }
+    const resultKey = `${nodeId}:${widgetName}`;
+    if (results.has(resultKey)) {
+      results.get(resultKey).excluded = true;
     }
   }
 
