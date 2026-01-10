@@ -703,26 +703,22 @@ export function getWorkflowIdentity() {
     // Normalize: remove .json extension for consistent ID generation
     // Different detection methods may or may not include the extension
     const normalizedName = filename.replace(/\.json$/i, '').trim();
-    const identity = {
+    return {
       id: generateWorkflowHash(normalizedName),
       name: normalizedName,
       source: 'filename',
       isSaved: true
     };
-    console.log('Alexandria: Workflow identity detected:', identity, '(raw filename:', filename, ')');
-    return identity;
   }
 
   // Method 2: Generate from node structure (workflow not saved/named)
   const signature = generateWorkflowSignature();
-  const identity = {
+  return {
     id: signature.hash,
     name: signature.name,
     source: 'generated',
     isSaved: false  // Workflow has no detectable name
   };
-  console.log('Alexandria: Workflow identity generated (unsaved):', identity);
-  return identity;
 }
 
 /**

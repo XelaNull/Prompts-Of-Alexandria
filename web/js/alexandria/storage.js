@@ -443,21 +443,20 @@ function applyRetention(template) {
 
 /**
  * Get templates for a specific workflow (respects custom order)
- * Matches by workflowId first, then falls back to workflowName comparison
- * to handle templates saved before ID normalization fixes
+ * Matches by workflowId, with fallback to workflowName comparison
  * @param {string} workflowId - Workflow ID to filter by
  * @param {string} workflowName - Optional workflow name for fallback matching
  * @returns {Array} Templates matching the workflow
  */
-export function getTemplatesForWorkflow(workflowId, workflowName = null) {
-  const normalizedName = workflowName ? workflowName.toLowerCase().replace(/\.json$/i, '').trim() : null;
-  return getTemplatesSorted().filter(t => {
+export function getTemplatesForWorkflow(workflowId, workflowName) {
+  return getTemplatesSorted().filter(function(t) {
     // Direct ID match
     if (t.workflowId === workflowId) return true;
-    // Fallback: compare normalized workflow names (handles old templates with mismatched IDs)
-    if (normalizedName && t.workflowName) {
-      const templateName = t.workflowName.toLowerCase().replace(/\.json$/i, '').trim();
-      return templateName === normalizedName;
+    // Fallback: compare workflow names (handles old templates with mismatched IDs)
+    if (workflowName && t.workflowName) {
+      var currentName = workflowName.toLowerCase().replace(/\.json$/i, '').trim();
+      var templateName = t.workflowName.toLowerCase().replace(/\.json$/i, '').trim();
+      return templateName === currentName;
     }
     return false;
   });
@@ -469,15 +468,15 @@ export function getTemplatesForWorkflow(workflowId, workflowName = null) {
  * @param {string} workflowName - Optional workflow name for fallback matching
  * @returns {Array} Templates from other workflows
  */
-export function getTemplatesFromOtherWorkflows(workflowId, workflowName = null) {
-  const normalizedName = workflowName ? workflowName.toLowerCase().replace(/\.json$/i, '').trim() : null;
-  return getTemplatesSorted().filter(t => {
+export function getTemplatesFromOtherWorkflows(workflowId, workflowName) {
+  return getTemplatesSorted().filter(function(t) {
     if (!t.workflowId) return false; // Legacy templates without workflow
     // Check if it matches current workflow (by ID or name)
     if (t.workflowId === workflowId) return false;
-    if (normalizedName && t.workflowName) {
-      const templateName = t.workflowName.toLowerCase().replace(/\.json$/i, '').trim();
-      if (templateName === normalizedName) return false;
+    if (workflowName && t.workflowName) {
+      var currentName = workflowName.toLowerCase().replace(/\.json$/i, '').trim();
+      var templateName = t.workflowName.toLowerCase().replace(/\.json$/i, '').trim();
+      if (templateName === currentName) return false;
     }
     return true;
   });

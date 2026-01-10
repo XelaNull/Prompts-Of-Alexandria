@@ -1325,18 +1325,6 @@ function renderTemplateList() {
   // Get current workflow identity
   const workflowIdentity = Detection.getWorkflowIdentity();
   const currentWorkflowId = workflowIdentity?.id || null;
-
-  // Debug: Log all templates and their workflow IDs
-  const allTemplates = Storage.getTemplates();
-  console.log('Alexandria Load: Current workflow ID:', currentWorkflowId);
-  console.log('Alexandria Load: All templates:', allTemplates.map(t => ({
-    name: t.name,
-    workflowId: t.workflowId,
-    workflowName: t.workflowName,
-    matches: t.workflowId === currentWorkflowId
-  })));
-
-  // Separate templates by workflow (pass name for fallback matching of old templates)
   const currentWorkflowName = workflowIdentity?.name || null;
   const currentWorkflowTemplates = currentWorkflowId
     ? Storage.getTemplatesForWorkflow(currentWorkflowId, currentWorkflowName)
