@@ -182,6 +182,21 @@ const CSS = `
     border-radius: 4px;
     margin-left: 4px;
   }
+  /* Stacked title for sub-pages */
+  .alexandria-title-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .alexandria-title-main {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .alexandria-title-sub {
+    font-size: 12px;
+    color: var(--alexandria-text-muted);
+    font-weight: 500;
+  }
   .alexandria-close {
     background: none;
     border: none;

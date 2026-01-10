@@ -340,8 +340,11 @@ function renderPanelContent(panelEl) {
       <div class="alexandria-header">
         <div class="alexandria-title">
           <button class="alexandria-back-btn" data-action="go-landing">←</button>
-          <span class="alexandria-icon">💾</span>
-          Save Prompts
+          <span class="alexandria-icon">📜</span>
+          <div class="alexandria-title-stack">
+            <span class="alexandria-title-main">Prompts of Alexandria <span class="alexandria-version">v${VERSION}</span></span>
+            <span class="alexandria-title-sub">💾 Save Prompts</span>
+          </div>
         </div>
         <button class="alexandria-close">&times;</button>
       </div>
@@ -375,8 +378,11 @@ function renderPanelContent(panelEl) {
       <div class="alexandria-header">
         <div class="alexandria-title">
           <button class="alexandria-back-btn" data-action="go-landing">←</button>
-          <span class="alexandria-icon">📂</span>
-          Load Template
+          <span class="alexandria-icon">📜</span>
+          <div class="alexandria-title-stack">
+            <span class="alexandria-title-main">Prompts of Alexandria <span class="alexandria-version">v${VERSION}</span></span>
+            <span class="alexandria-title-sub">📂 Load Template</span>
+          </div>
         </div>
         <button class="alexandria-close">&times;</button>
       </div>
@@ -418,8 +424,11 @@ function renderPanelContent(panelEl) {
       <div class="alexandria-header">
         <div class="alexandria-title">
           <button class="alexandria-back-btn" data-action="go-landing">←</button>
-          <span class="alexandria-icon">⚙️</span>
-          Configure Detection
+          <span class="alexandria-icon">📜</span>
+          <div class="alexandria-title-stack">
+            <span class="alexandria-title-main">Prompts of Alexandria <span class="alexandria-version">v${VERSION}</span></span>
+            <span class="alexandria-title-sub">⚙️ Configure Detection</span>
+          </div>
         </div>
         <button class="alexandria-close">&times;</button>
       </div>
