@@ -1,26 +1,27 @@
-# Prompts of Alexandria v0.5.0 - Sharing a tool I built for managing prompts
+# Prompts of Alexandria v0.5.0 - A prompt organizer with version history
 
-**TL;DR:** Got tired of notepad files, built a prompt organizer with version history. Zero dependencies, works on the new UI.
+**TL;DR:** Built a prompt manager that auto-saves with version history. Zero dependencies, works on the new UI.
 
 ---
 
-I got tired of organizing prompts. I've got like 15 different scene variations I rotate through, and I was copy-pasting from notepad files like a caveman, trying to remember which version had that perfect lighting setup.
+I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files like a caveman, trying to remember which version had that perfect lighting setup.
 
-So I built **Prompts of Alexandria** to solve it for myself.
+So I built **Prompts of Alexandria**.
 
-Now I just click the book icon in the sidebar, pick a template, hit Load, and all my prompts go back to their original nodes. When I'm iterating, every change gets versioned automatically - so if I realize v5 was better than v7, I just load v5.
+It auto-detects your prompt nodes, saves them as templates with full version history, and lets you restore any version with one click from a sidebar panel. No more notepad files. No more "wait which prompt was that?"
 
 Built and tested on ComfyUI's new UI.
 
 ---
 
-**What it does for me:**
+**What it does:**
 
-- Auto-detects my prompt nodes so I don't have to manually track them
-- Keeps templates organized per workflow - my portrait project doesn't mix with my landscape stuff
-- Versions everything - I can always go back to what was working
-- Auto-saves when I generate (only when something actually changes)
-- Lives in the sidebar so it's always one click away
+- Smart detection - finds your prompts automatically across CLIPTextEncode, SDXL, custom nodes, whatever
+- Templates per workflow - keeps projects separate
+- Full version history - every save tracked, load any previous version instantly
+- Sidebar quick-access - click the book icon, see all your templates, one-click load
+- Two-node auto-save - drop Control + Save nodes in your workflow, saves on every gen (only when things change)
+- Zero dependencies - just clone to custom_nodes and restart
 
 ---
 
@@ -36,16 +37,16 @@ Built and tested on ComfyUI's new UI.
 ▶ Portrait Mode          v12
 ```
 
+Click Load, prompts go back to their original nodes. Done.
+
 ---
 
 **Why "Alexandria"?** The ancient library tried to save all human knowledge. Prompts are spells that conjure beauty from nothing - figured they deserve saving too.
 
 **Link:** https://github.com/XelaNull/Prompts-Of-Alexandria
 
-Zero dependencies - just clone to custom_nodes and restart.
-
 ---
 
 *Built with Claude Code (Opus) + Samantha, a custom AI persona handling code review. Not a single line written by human hands - just reviewed by one.*
 
-Happy to answer questions if anyone finds it useful!
+Happy to answer questions!
