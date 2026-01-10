@@ -6,8 +6,6 @@
 
 So I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files like a caveman, trying to remember which version had that perfect lighting setup. It's exhausting.
 
-And yeah, occasionally losing a prompt when you accidentally paste over it doesn't help either.
-
 **Prompts of Alexandria** fixes this. It auto-detects your prompt nodes, saves them as templates with full version history, and lets you restore any version with one click from a sidebar panel. No more notepad files. No more "wait which prompt was that?"
 
 ---
