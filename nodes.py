@@ -132,7 +132,6 @@ class AlexandriaControlNode:
     FUNCTION = "execute"
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("template_name",)
-    OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
