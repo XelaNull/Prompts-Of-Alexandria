@@ -19,7 +19,7 @@ Save your carefully crafted prompts as reusable templates, switch between prompt
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/yourusername/prompts-of-alexandria.git
+git clone https://github.com/XelaNull/Prompts-Of-Alexandria.git
 ```
 
 Restart ComfyUI.
@@ -93,19 +93,20 @@ Add Alexandria nodes to your workflow for automatic prompt management:
 
 | Node | Purpose |
 |------|---------|
-| **Alexandria Save (Conditioning)** | Passthrough node - saves prompts when workflow executes |
-| **Alexandria Save (Any)** | Generic passthrough for non-conditioning data |
-| **Alexandria Control Panel** | Buttons for Save Now / Load / Open Panel |
-| **Alexandria Load Template** | Triggers template load on workflow execution |
+| **Alexandria Control Panel** | Set template name, buttons for Save Now / Open Panel. Outputs `template_name`. |
+| **Alexandria Save** | Receives `template_name` input, triggers save when workflow executes. |
 
 #### Example: Auto-Save Setup
 
 ```
-[CLIPTextEncode] ──positive──► [Alexandria Save] ──positive──► [KSampler]
-[CLIPTextEncode] ──negative──►                   ──negative──►
+[Alexandria Control Panel] ──template_name──► [Alexandria Save]
+        │                                            │
+        │ template_name: "My Scene"                  │ Saves all detected prompts
+        │ [Save Now] [Open Panel]                    │ when workflow runs
+        └────────────────────────────────────────────┘
 ```
 
-The Save node passes data through unchanged while triggering a template save.
+The Control Panel outputs the template name to the Save node. When the workflow executes, Alexandria Save triggers a save of all detected prompts to that template. The Save node also has a `name_override` option if you want to use a different name than what the Control Panel provides.
 
 ## Detection Methods
 
