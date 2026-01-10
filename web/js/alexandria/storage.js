@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = {
     maxAgeDays: 30,
   },
   debug: false,
-  detectionMode: 'lazy', // 'lazy' = include more widgets, 'precise' = only high-confidence prompts
+  detectionMode: 'precise', // 'lazy' = include more widgets, 'precise' = only high-confidence prompts
 };
 
 // Storage key for tracked workflow name (hooked from save/load events)
@@ -263,7 +263,7 @@ export function isDebugEnabled() {
  * @returns {string} 'lazy' or 'precise'
  */
 export function getDetectionMode() {
-  return getSettings().detectionMode || 'lazy';
+  return getSettings().detectionMode || 'precise';
 }
 
 /**
