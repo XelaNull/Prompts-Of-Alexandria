@@ -602,6 +602,9 @@ function renderConfigureNodeList() {
   let nodes = Detection.getAllWorkflowWidgets();
   const manualSelections = Storage.getManualSelections();
 
+  // Use stable sort by node ID to prevent reordering when overrides change
+  nodes.sort((a, b) => a.id - b.id);
+
   // Filter by search
   if (searchQuery) {
     nodes = nodes.filter(node => {
