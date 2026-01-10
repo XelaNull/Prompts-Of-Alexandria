@@ -89,6 +89,19 @@ function getTimeAgo(dateStr) {
   return date.toLocaleDateString();
 }
 
+/**
+ * Method label mapping for display
+ */
+const METHOD_LABELS = {
+  'backward_link_tracing': 'Link Trace',
+  'known_node_type': 'Known Node',
+  'output_type_analysis': 'Output Type',
+  'input_slot_pattern': 'Input Pattern',
+  'widget_name_pattern': 'Widget Name',
+  'widget_type_heuristic': 'Widget Type',
+  'user_manual_selection': 'Manual',
+};
+
 // ============ Drag Functionality ============
 
 /**
@@ -804,7 +817,7 @@ function renderConfigureWidget(node, widget, manualSelections) {
     <div class="alexandria-widget ${widget.isDetected ? 'widget-detected' : ''} ${state !== 'auto' ? 'widget-override' : ''}">
       <div class="alexandria-widget-info">
         <span class="alexandria-widget-name">${escapeHtml(widget.name)}</span>
-        ${widget.isDetected ? `<span class="alexandria-confidence">Auto-Detected ${widget.confidence}%</span>` : ''}
+        ${widget.isDetected ? `<span class="alexandria-confidence">Auto-Detected ${METHOD_LABELS[widget.method] || widget.method} ${widget.confidence}%</span>` : ''}
       </div>
       <div class="alexandria-widget-value">${escapeHtml(preview)}</div>
       <div class="alexandria-override-controls">
@@ -2267,7 +2280,7 @@ function renderWidget(node, widget) {
             data-node-type="${escapeHtml(node.type)}"
             data-widget-name="${escapeHtml(widget.name)}" />
           <span class="alexandria-widget-name">${escapeHtml(widget.name)}</span>
-          ${widget.isDetected ? `<span class="alexandria-confidence">Auto-Detected ${widget.confidence}% - To be Saved!</span>` : ''}
+          ${widget.isDetected ? `<span class="alexandria-confidence">Auto-Detected ${METHOD_LABELS[widget.method] || widget.method} ${widget.confidence}% - To be Saved!</span>` : ''}
         </label>
         <div class="alexandria-widget-actions">
           <button class="alexandria-btn-small" data-action="view" data-node-id="${node.id}" data-widget-name="${escapeHtml(widget.name)}" title="View full text">👁</button>
