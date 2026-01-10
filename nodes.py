@@ -11,6 +11,9 @@ Nodes:
 
 import json
 import hashlib
+import os
+from pathlib import Path
+from datetime import datetime
 
 # Import server components safely
 try:
@@ -20,6 +23,12 @@ try:
 except ImportError:
     SERVER_AVAILABLE = False
     print("Alexandria: PromptServer not available - nodes will have limited functionality")
+
+# Default storage directory (relative to ComfyUI root)
+DEFAULT_STORAGE_DIR = "alexandria_templates"
+
+# Global storage directory (can be updated by Control node)
+_current_storage_dir = None
 
 # Store for tracking template state (used for diff detection)
 # Note: This is server-side only, templates are stored in browser localStorage
@@ -141,6 +150,10 @@ class AlexandriaControlNode:
                     "default": "My Template",
                     "multiline": False,
                 }),
+                "storage_directory": ("STRING", {
+                    "default": DEFAULT_STORAGE_DIR,
+                    "multiline": False,
+                }),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -152,9 +165,104 @@ class AlexandriaControlNode:
         # Always consider changed so buttons work on re-execution
         return float("nan")
 
-    def execute(self, template_name, unique_id=None):
+    def execute(self, template_name, storage_directory, unique_id=None):
+        global _current_storage_dir
+
+        # Update the global storage directory
+        _current_storage_dir = storage_directory if storage_directory else DEFAULT_STORAGE_DIR
+
+        # Ensure the storage directory exists
+        storage_path = Path(_current_storage_dir)
+        if not storage_path.is_absolute():
+            # Make relative to ComfyUI root
+            storage_path = Path(os.getcwd()) / storage_path
+
+        try:
+            storage_path.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Alexandria: Could not create storage directory {storage_path}: {e}")
+
+        # Notify frontend of the storage directory
+        _send_to_frontend("alexandria.storage_dir", {
+            "node_id": unique_id,
+            "storage_directory": str(storage_path),
+        })
+
         # Output template_name so it can be connected to other Alexandria nodes
         return (template_name,)
+
+
+# ============ File Storage Helper Functions ============
+
+def _get_storage_path():
+    """Get the current storage directory as an absolute Path."""
+    global _current_storage_dir
+    storage_dir = _current_storage_dir or DEFAULT_STORAGE_DIR
+    storage_path = Path(storage_dir)
+    if not storage_path.is_absolute():
+        storage_path = Path(os.getcwd()) / storage_path
+    return storage_path
+
+
+def _sanitize_filename(name):
+    """Sanitize a template name for use as a filename."""
+    # Remove/replace invalid filename characters
+    invalid_chars = '<>:"/\\|?*'
+    for char in invalid_chars:
+        name = name.replace(char, '_')
+    return name.strip()
+
+
+def _save_template_to_file(template_data):
+    """Save a template to a JSON file in the storage directory."""
+    storage_path = _get_storage_path()
+    storage_path.mkdir(parents=True, exist_ok=True)
+
+    template_name = template_data.get('name', 'Unnamed')
+    safe_name = _sanitize_filename(template_name)
+    file_path = storage_path / f"{safe_name}.json"
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(template_data, f, indent=2, ensure_ascii=False)
+
+    return str(file_path)
+
+
+def _load_templates_from_directory():
+    """Load all templates from the storage directory."""
+    storage_path = _get_storage_path()
+
+    if not storage_path.exists():
+        return []
+
+    templates = []
+    for file_path in storage_path.glob("*.json"):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                template = json.load(f)
+                # Ensure template has required fields
+                if 'name' not in template:
+                    template['name'] = file_path.stem
+                if 'id' not in template:
+                    template['id'] = hashlib.md5(file_path.stem.encode()).hexdigest()[:16]
+                template['_file_path'] = str(file_path)
+                templates.append(template)
+        except Exception as e:
+            print(f"Alexandria: Error loading template {file_path}: {e}")
+
+    return templates
+
+
+def _delete_template_file(template_name):
+    """Delete a template file from the storage directory."""
+    storage_path = _get_storage_path()
+    safe_name = _sanitize_filename(template_name)
+    file_path = storage_path / f"{safe_name}.json"
+
+    if file_path.exists():
+        file_path.unlink()
+        return True
+    return False
 
 
 # ============ API Routes ============
@@ -162,22 +270,160 @@ class AlexandriaControlNode:
 if SERVER_AVAILABLE:
     routes = PromptServer.instance.routes
 
-    @routes.get("/alexandria/templates")
-    async def get_templates(request):
-        """
-        Get templates endpoint - delegates to frontend localStorage.
-        This endpoint exists for potential future server-side storage.
-        """
+    @routes.get("/alexandria/storage-dir")
+    async def get_storage_dir(request):
+        """Get the current storage directory."""
+        storage_path = _get_storage_path()
         return web.json_response({
             "status": "ok",
-            "message": "Templates are stored in browser localStorage. Use frontend API."
+            "storage_directory": str(storage_path),
+            "exists": storage_path.exists()
         })
+
+    @routes.post("/alexandria/storage-dir")
+    async def set_storage_dir(request):
+        """Set the storage directory."""
+        global _current_storage_dir
+        try:
+            data = await request.json()
+            new_dir = data.get("storage_directory", DEFAULT_STORAGE_DIR)
+            _current_storage_dir = new_dir
+
+            storage_path = _get_storage_path()
+            storage_path.mkdir(parents=True, exist_ok=True)
+
+            return web.json_response({
+                "status": "ok",
+                "storage_directory": str(storage_path)
+            })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.get("/alexandria/templates")
+    async def get_templates(request):
+        """Get all templates from the storage directory."""
+        try:
+            templates = _load_templates_from_directory()
+            return web.json_response({
+                "status": "ok",
+                "templates": templates,
+                "count": len(templates),
+                "storage_directory": str(_get_storage_path())
+            })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.post("/alexandria/templates/save")
+    async def save_template_to_file(request):
+        """Save a template to a file."""
+        try:
+            template_data = await request.json()
+
+            if not template_data.get('name'):
+                return web.json_response({
+                    "status": "error",
+                    "message": "Template name is required"
+                })
+
+            # Add timestamp if not present
+            if 'updatedAt' not in template_data:
+                template_data['updatedAt'] = datetime.now().isoformat()
+            if 'createdAt' not in template_data:
+                template_data['createdAt'] = template_data['updatedAt']
+
+            file_path = _save_template_to_file(template_data)
+
+            return web.json_response({
+                "status": "ok",
+                "message": f"Template saved to {file_path}",
+                "file_path": file_path
+            })
+
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.post("/alexandria/templates/delete")
+    async def delete_template_file(request):
+        """Delete a template file."""
+        try:
+            data = await request.json()
+            template_name = data.get("name")
+
+            if not template_name:
+                return web.json_response({
+                    "status": "error",
+                    "message": "Template name is required"
+                })
+
+            if _delete_template_file(template_name):
+                return web.json_response({
+                    "status": "ok",
+                    "message": f"Template '{template_name}' deleted"
+                })
+            else:
+                return web.json_response({
+                    "status": "error",
+                    "message": f"Template '{template_name}' not found"
+                })
+
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.post("/alexandria/templates/sync")
+    async def sync_templates(request):
+        """
+        Sync templates between browser localStorage and file storage.
+        Accepts templates from browser and merges with file storage.
+        """
+        try:
+            data = await request.json()
+            browser_templates = data.get("templates", [])
+
+            # Load existing file templates
+            file_templates = _load_templates_from_directory()
+            file_template_names = {t['name'] for t in file_templates}
+
+            # Save any browser templates not in files
+            saved_count = 0
+            for template in browser_templates:
+                if template.get('name') and template['name'] not in file_template_names:
+                    _save_template_to_file(template)
+                    saved_count += 1
+
+            # Return all templates (merged)
+            all_templates = _load_templates_from_directory()
+
+            return web.json_response({
+                "status": "ok",
+                "templates": all_templates,
+                "saved_count": saved_count,
+                "total_count": len(all_templates)
+            })
+
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
 
     @routes.post("/alexandria/save")
     async def save_template(request):
         """
         API endpoint for saving templates from nodes.
         Used for server-side diff detection to avoid duplicate saves.
+        Also saves to file storage.
         """
         try:
             data = await request.json()
@@ -205,11 +451,21 @@ if SERVER_AVAILABLE:
             _template_state[template_name] = new_hash
             _evict_oldest_template_state()  # Prevent memory leak
 
+            # Also save to file
+            template_data = {
+                "name": template_name,
+                "entries": entries,
+                "hash": new_hash,
+                "updatedAt": datetime.now().isoformat(),
+            }
+            file_path = _save_template_to_file(template_data)
+
             return web.json_response({
                 "status": "ok",
                 "template_name": template_name,
                 "hash": new_hash,
-                "entry_count": len(entries)
+                "entry_count": len(entries),
+                "file_path": file_path
             })
 
         except Exception as e:

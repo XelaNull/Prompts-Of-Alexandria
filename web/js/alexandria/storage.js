@@ -26,6 +26,153 @@ const DEFAULT_SETTINGS = {
 // Storage key for tracked workflow name (hooked from save/load events)
 const WORKFLOW_NAME_KEY = 'alexandria_current_workflow';
 
+// Storage key for current storage directory
+const STORAGE_DIR_KEY = 'alexandria_storage_directory';
+
+// Cache for current storage directory from backend
+let _currentStorageDir = null;
+
+// ============ File Storage API ============
+
+/**
+ * Get the current storage directory from the backend
+ * @returns {Promise<string|null>} Storage directory path or null
+ */
+export async function getStorageDirectory() {
+  try {
+    const response = await fetch('/alexandria/storage-dir');
+    const data = await response.json();
+    if (data.status === 'ok') {
+      _currentStorageDir = data.storage_directory;
+      return data.storage_directory;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not get storage directory from backend', e);
+  }
+  return _currentStorageDir;
+}
+
+/**
+ * Set the storage directory on the backend
+ * @param {string} directory - Storage directory path
+ * @returns {Promise<boolean>} Success status
+ */
+export async function setStorageDirectory(directory) {
+  try {
+    const response = await fetch('/alexandria/storage-dir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storage_directory: directory })
+    });
+    const data = await response.json();
+    if (data.status === 'ok') {
+      _currentStorageDir = data.storage_directory;
+      localStorage.setItem(STORAGE_DIR_KEY, data.storage_directory);
+      return true;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not set storage directory', e);
+  }
+  return false;
+}
+
+/**
+ * Save a template to file storage (via backend API)
+ * @param {Object} template - Template data to save
+ * @returns {Promise<boolean>} Success status
+ */
+export async function saveTemplateToFile(template) {
+  try {
+    const response = await fetch('/alexandria/templates/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(template)
+    });
+    const data = await response.json();
+    return data.status === 'ok';
+  } catch (e) {
+    console.warn('Alexandria: Could not save template to file', e);
+    return false;
+  }
+}
+
+/**
+ * Load templates from file storage (via backend API)
+ * @returns {Promise<Array>} Array of templates from file storage
+ */
+export async function loadTemplatesFromFiles() {
+  try {
+    const response = await fetch('/alexandria/templates');
+    const data = await response.json();
+    if (data.status === 'ok') {
+      return data.templates || [];
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not load templates from files', e);
+  }
+  return [];
+}
+
+/**
+ * Delete a template from file storage
+ * @param {string} templateName - Name of template to delete
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteTemplateFromFile(templateName) {
+  try {
+    const response = await fetch('/alexandria/templates/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: templateName })
+    });
+    const data = await response.json();
+    return data.status === 'ok';
+  } catch (e) {
+    console.warn('Alexandria: Could not delete template from file', e);
+    return false;
+  }
+}
+
+/**
+ * Sync templates between localStorage and file storage
+ * Merges both sources, preferring file storage for conflicts
+ * @returns {Promise<Array>} Merged array of templates
+ */
+export async function syncTemplates() {
+  try {
+    // Get templates from both sources
+    const localTemplates = getTemplates();
+
+    // Send local templates to backend for sync
+    const response = await fetch('/alexandria/templates/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templates: localTemplates })
+    });
+    const data = await response.json();
+
+    if (data.status === 'ok') {
+      // Update local storage with merged templates
+      const mergedTemplates = data.templates || [];
+
+      // Merge: keep local templates and add any new ones from files
+      const localByName = new Map(localTemplates.map(t => [t.name, t]));
+      for (const fileTemplate of mergedTemplates) {
+        if (!localByName.has(fileTemplate.name)) {
+          localTemplates.push(fileTemplate);
+        }
+      }
+      saveTemplates(localTemplates);
+
+      console.log(`Alexandria: Synced ${data.saved_count} templates to files, ${data.total_count} total in file storage`);
+      return mergedTemplates;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not sync templates', e);
+  }
+  return getTemplates();
+}
+
 /**
  * Generate a UUID v4
  * @returns {string} UUID string
@@ -344,6 +491,13 @@ export function createTemplate(name, entries, workflowInfo = null) {
     return null;
   }
 
+  // Also save to file storage (async, don't await)
+  saveTemplateToFile(template).then(success => {
+    if (success && isDebugEnabled()) {
+      console.log(`Alexandria: Template "${name}" also saved to file storage`);
+    }
+  });
+
   if (isDebugEnabled()) {
     console.log(`Alexandria: Created template "${name}" for workflow "${workflowInfo?.name || 'unknown'}" with ${entries.length} entries`);
   }
@@ -391,6 +545,13 @@ export function updateTemplate(id, entries) {
     return null;
   }
 
+  // Also save to file storage (async, don't await)
+  saveTemplateToFile(template).then(success => {
+    if (success && isDebugEnabled()) {
+      console.log(`Alexandria: Template "${template.name}" also updated in file storage`);
+    }
+  });
+
   if (isDebugEnabled()) {
     console.log(`Alexandria: Updated template "${template.name}" (v${template.versions.length})`);
   }
@@ -410,8 +571,17 @@ export function deleteTemplate(id) {
   templates.splice(index, 1);
   const success = saveTemplates(templates);
 
-  if (success && isDebugEnabled()) {
-    console.log(`Alexandria: Deleted template "${name}"`);
+  if (success) {
+    // Also delete from file storage (async, don't await)
+    deleteTemplateFromFile(name).then(fileSuccess => {
+      if (fileSuccess && isDebugEnabled()) {
+        console.log(`Alexandria: Template "${name}" also deleted from file storage`);
+      }
+    });
+
+    if (isDebugEnabled()) {
+      console.log(`Alexandria: Deleted template "${name}"`);
+    }
   }
 
   return success;

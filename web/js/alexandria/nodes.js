@@ -41,6 +41,16 @@ export function setupWebSocketHandlers() {
     handleNodeSave(template_name);
   });
 
+  // Listen for storage directory updates from Control node
+  api.addEventListener("alexandria.storage_dir", (event) => {
+    const { node_id, storage_directory } = event.detail;
+    console.log(`Alexandria: Storage directory set to "${storage_directory}" by node ${node_id}`);
+    // Sync templates with the new storage directory
+    Storage.syncTemplates().then(() => {
+      console.log('Alexandria: Templates synced with file storage');
+    });
+  });
+
   handlersSetup = true;
   console.log('Alexandria: WebSocket handlers registered');
 }
