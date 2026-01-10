@@ -26,6 +26,20 @@ const CSS = `
     --alexandria-info: #60a5fa;
   }
 
+  /* ============ ComfyUI Sidebar Panel Override ============ */
+  /* Hide the sidebar panel completely when Alexandria is active */
+  /* This prevents the brief flash of the expanding sidebar */
+  .side-bar-panel.alexandria-active,
+  .side-bar-panel[data-tab-id="alexandria"],
+  .comfyui-sidebar-content.alexandria-hidden {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: none !important;
+  }
+
   /* ============ Sidebar Button ============ */
   .alexandria-sidebar-btn {
     display: flex !important;

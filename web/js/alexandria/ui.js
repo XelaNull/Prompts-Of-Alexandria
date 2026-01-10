@@ -335,14 +335,31 @@ export function close() {
 
 /**
  * Deselect the Alexandria sidebar icon
+ * Removes visual active state without triggering click events
  */
 function deselectSidebarIcon() {
-  // Try to find the sidebar button and check if it's selected
   const sidebarBtn = document.querySelector('[data-sidebar-id="alexandria"]');
-  if (sidebarBtn && sidebarBtn.classList.contains('p-button-primary')) {
-    // Button is active, click to deselect
-    sidebarBtn.click();
+  if (sidebarBtn) {
+    // Remove all possible active/selected classes
+    sidebarBtn.classList.remove('p-button-primary', 'active', 'selected', 'p-highlight');
+
+    // Also try clicking to properly reset ComfyUI's internal state
+    // But only if the button appears to be in active state
+    if (sidebarBtn.classList.contains('p-button-primary') ||
+        sidebarBtn.getAttribute('aria-selected') === 'true') {
+      // Use a flag to prevent re-opening the popup
+      window._alexandriaClosing = true;
+      sidebarBtn.click();
+      setTimeout(() => { window._alexandriaClosing = false; }, 100);
+    }
   }
+
+  // Also clean up any sidebar panel that might be visible
+  const panels = document.querySelectorAll('.side-bar-panel, .comfyui-sidebar-content');
+  panels.forEach(panel => {
+    panel.classList.remove('alexandria-hidden');
+    panel.style.cssText = '';
+  });
 }
 
 /**

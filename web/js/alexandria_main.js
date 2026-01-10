@@ -23,8 +23,43 @@ let lastSidebarOpen = 0;
 const SIDEBAR_COOLDOWN_MS = 500;
 
 /**
+ * Immediately hide the ComfyUI sidebar panel
+ * Called as soon as render() is invoked to prevent the brief flash
+ */
+function hideSidebarPanel() {
+  // Hide any sidebar panel that might be showing
+  const panels = document.querySelectorAll('.side-bar-panel, .comfyui-sidebar-content, [class*="sidebar-panel"]');
+  panels.forEach(panel => {
+    panel.classList.add('alexandria-hidden');
+    panel.style.cssText = 'display: none !important; width: 0 !important; opacity: 0 !important; visibility: hidden !important; transition: none !important;';
+  });
+
+  // Also try to hide any container that might be expanding
+  const containers = document.querySelectorAll('.side-bar-container, [class*="sidebar-container"]');
+  containers.forEach(container => {
+    const panel = container.querySelector('[class*="panel"]');
+    if (panel) {
+      panel.style.cssText = 'display: none !important; width: 0 !important; transition: none !important;';
+    }
+  });
+}
+
+/**
+ * Deselect the Alexandria sidebar button
+ * This removes the "pressed" state from the button
+ */
+function deselectAlexandriaButton() {
+  const sidebarBtn = document.querySelector('[data-sidebar-id="alexandria"]');
+  if (sidebarBtn) {
+    // Remove active/selected classes that ComfyUI might add
+    sidebarBtn.classList.remove('p-button-primary', 'active', 'selected');
+  }
+}
+
+/**
  * Register Alexandria in ComfyUI's sidebar
  * Uses the extensionManager API to add an icon to the left sidebar
+ * The sidebar button acts as a toggle for our popup - no sidebar panel is shown
  */
 function registerSidebarTab() {
   // Wait for extensionManager to be available
@@ -48,35 +83,32 @@ function registerSidebarTab() {
       tooltip: 'Prompts',
       type: 'custom',
       render: (container) => {
-        // Guard: Don't open if already open or if opened very recently (prevents execution-triggered renders)
+        // IMMEDIATELY hide the sidebar panel - before any animation can start
+        hideSidebarPanel();
+        container.innerHTML = '';
+        container.style.cssText = 'display: none !important; width: 0 !important;';
+
+        // Guard: Don't open if we're in the process of closing
+        if (window._alexandriaClosing) {
+          return;
+        }
+
+        // Guard: Don't open if already open or if opened very recently
         const now = Date.now();
         if (UI.isOpenState() || (now - lastSidebarOpen) < SIDEBAR_COOLDOWN_MS) {
-          container.innerHTML = '';
           return;
         }
         lastSidebarOpen = now;
 
-        // Open the popup
+        // Open our popup instead
         UI.open();
 
-        // Empty the container - we don't need sidebar content
-        container.innerHTML = '';
-
-        // Try to close/deselect this sidebar tab after a brief delay
-        // This makes clicking the icon just open the popup without showing sidebar
+        // Deselect the sidebar button after a brief moment
+        // This gives ComfyUI time to process but keeps the button from staying pressed
         setTimeout(() => {
-          // Find and click the same tab button to deselect it (toggle off)
-          const sidebarBtn = document.querySelector('[data-sidebar-id="alexandria"]');
-          if (sidebarBtn) {
-            sidebarBtn.click();
-          } else {
-            // Alternative: try to find active sidebar and close it
-            const activeSidebar = document.querySelector('.side-bar-panel');
-            if (activeSidebar) {
-              activeSidebar.style.display = 'none';
-            }
-          }
-        }, 50);
+          deselectAlexandriaButton();
+          hideSidebarPanel(); // Hide again in case it tried to re-show
+        }, 10);
       },
     });
     console.log('Alexandria: Sidebar tab registered');
