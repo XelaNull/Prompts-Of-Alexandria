@@ -107,7 +107,7 @@ const CSS = `
     border-top: 1px solid var(--alexandria-border);
     padding: 8px 12px;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   .alexandria-embedded .alexandria-actions {
     flex-wrap: wrap;
@@ -180,7 +180,7 @@ const CSS = `
   .alexandria-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 16px;
     font-weight: 600;
   }
@@ -384,7 +384,7 @@ const CSS = `
     padding: 12px;
     border-top: 1px solid var(--alexandria-border);
     display: flex;
-    gap: 8px;
+    gap: 6px;
   }
 
   /* ============ Template List ============ */
@@ -416,7 +416,7 @@ const CSS = `
     opacity: 0.7;
   }
   .alexandria-template-item {
-    padding: 10px 12px;
+    padding: 6px 10px;
     border-radius: 6px;
     cursor: pointer;
     margin-bottom: 4px;
@@ -424,7 +424,7 @@ const CSS = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .alexandria-template-item:hover {
     background: var(--alexandria-bg-tertiary);
@@ -530,7 +530,7 @@ const CSS = `
   .alexandria-workflow-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     padding: 8px 20px;
     font-size: 12px;
     font-weight: 500;
@@ -907,7 +907,7 @@ const CSS = `
   .alexandria-widget-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
   }
   .alexandria-widget.widget-override {
@@ -1039,7 +1039,7 @@ const CSS = `
   }
   .alexandria-preview-stats {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     font-size: 11px;
   }
   .alexandria-match-good {
@@ -1055,14 +1055,14 @@ const CSS = `
   .alexandria-preview-node {
     background: var(--alexandria-bg-secondary);
     border: 1px solid var(--alexandria-border);
-    border-radius: 8px;
+    border-radius: 6px;
     margin-bottom: 12px;
     overflow: hidden;
   }
   .alexandria-preview-node-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     padding: 10px 14px;
     background: var(--alexandria-bg-tertiary);
     border-bottom: 1px solid var(--alexandria-border);
@@ -1080,7 +1080,7 @@ const CSS = `
     padding: 10px 14px;
   }
   .alexandria-preview-entry {
-    margin-bottom: 10px;
+    margin-bottom: 4px;
   }
   .alexandria-preview-entry:last-child {
     margin-bottom: 0;
@@ -1156,7 +1156,7 @@ const CSS = `
   .alexandria-preview-widget {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px;
     padding: 4px 0;
     border-bottom: 1px solid var(--alexandria-border);
   }
@@ -1205,7 +1205,7 @@ const CSS = `
   }
   .alexandria-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
   }
 
   /* ============ Buttons ============ */
@@ -1322,7 +1322,7 @@ const CSS = `
   .alexandria-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
     padding: 16px 20px;
     border-top: 1px solid var(--alexandria-border);
   }
@@ -1346,7 +1346,7 @@ const CSS = `
   }
   .alexandria-input {
     width: 100%;
-    padding: 10px 12px;
+    padding: 6px 10px;
     background: var(--alexandria-bg-tertiary);
     border: 1px solid var(--alexandria-border);
     border-radius: 6px;
@@ -1374,7 +1374,7 @@ const CSS = `
     font-size: 9px;
     font-weight: 600;
     padding: 1px 5px;
-    border-radius: 8px;
+    border-radius: 6px;
     margin-left: 6px;
     vertical-align: middle;
   }
@@ -1454,7 +1454,7 @@ const CSS = `
     background: linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(96, 165, 250, 0.05) 100%);
     border: 1px solid rgba(96, 165, 250, 0.4);
     border-radius: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
     margin-top: 12px;
     gap: 12px;
   }
@@ -1539,7 +1539,7 @@ const CSS = `
   .alexandria-version-item-main {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .alexandria-version-item-time {
     font-size: 12px;
@@ -1551,7 +1551,7 @@ const CSS = `
     background: var(--alexandria-success);
     color: white;
     padding: 2px 6px;
-    border-radius: 8px;
+    border-radius: 6px;
   }
   .alexandria-version-item-meta {
     font-size: 11px;
@@ -1582,13 +1582,13 @@ const CSS = `
   .alexandria-version-bar-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .alexandria-diff-summary {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 6px;
+    padding: 6px 10px;
     background: rgba(96, 165, 250, 0.1);
     border: 1px solid rgba(96, 165, 250, 0.3);
     border-radius: 6px;
@@ -1627,7 +1627,7 @@ const CSS = `
     margin-bottom: 16px;
     background: var(--alexandria-bg-secondary);
     border: 1px solid var(--alexandria-border);
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
   }
   .alexandria-diff-section-warning {
@@ -1637,7 +1637,7 @@ const CSS = `
   .alexandria-diff-section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     padding: 10px 14px;
     background: var(--alexandria-bg-tertiary);
     border-bottom: 1px solid var(--alexandria-border);
@@ -1681,7 +1681,7 @@ const CSS = `
   .alexandria-diff-entry-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     padding: 8px 12px;
     background: var(--alexandria-bg-tertiary);
     border-bottom: 1px solid var(--alexandria-border);
@@ -1706,14 +1706,14 @@ const CSS = `
     color: var(--alexandria-warning);
   }
   .alexandria-diff-entry-values {
-    padding: 10px 12px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
   .alexandria-diff-value {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     font-size: 12px;
   }
   .alexandria-diff-value-label {
@@ -1757,7 +1757,7 @@ const CSS = `
     padding: 12px 24px;
     background: var(--alexandria-success);
     color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 500;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     opacity: 0;
@@ -1809,4 +1809,255 @@ export function removeStyles() {
     style.remove();
     stylesInjected = false;
   }
+}
+
+// ============ Sidebar Panel Styles ============
+
+const SIDEBAR_CSS = `
+  /* Alexandria Sidebar Panel - Quick Access UI */
+  .alexandria-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    min-width: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    color: var(--p-text-color, #e8e8e8);
+    background: var(--p-surface-ground, #1a1a2e);
+  }
+
+  .alexandria-sidebar-header {
+    padding: 12px;
+    border-bottom: 1px solid var(--p-surface-border, #2a2a4a);
+  }
+
+  .alexandria-sidebar-btn-primary {
+    width: 100%;
+    padding: 10px 16px;
+    background: var(--alexandria-accent, #e94560);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .alexandria-sidebar-btn-primary:hover {
+    background: var(--alexandria-accent-hover, #ff6b6b);
+  }
+
+  .alexandria-sidebar-section {
+    padding: 12px;
+    border-bottom: 1px solid var(--p-surface-border, #2a2a4a);
+  }
+  .alexandria-sidebar-section:last-child {
+    border-bottom: none;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .alexandria-sidebar-workflow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--p-text-muted-color, #888);
+    background: var(--p-surface-card, #16213e);
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .alexandria-sidebar-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--p-text-muted-color, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .alexandria-sidebar-empty {
+    text-align: center;
+    padding: 20px 12px;
+    color: var(--p-text-muted-color, #888);
+    font-size: 12px;
+  }
+  .alexandria-sidebar-hint {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  .alexandria-sidebar-template {
+    background: var(--p-surface-card, #16213e);
+    border: 1px solid var(--p-surface-border, #2a2a4a);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    overflow: hidden;
+  }
+
+  .alexandria-sidebar-template-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--p-surface-overlay, #0f0f1a);
+    border-bottom: 1px solid var(--p-surface-border, #2a2a4a);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .alexandria-sidebar-template-header:hover {
+    background: var(--p-surface-hover, rgba(255,255,255,0.08));
+  }
+  .alexandria-sidebar-template.collapsed .alexandria-sidebar-template-header {
+    border-bottom: none;
+  }
+
+  .alexandria-sidebar-collapse-icon {
+    font-size: 10px;
+    color: var(--p-text-muted-color, #888);
+    width: 12px;
+    flex-shrink: 0;
+  }
+
+  .alexandria-sidebar-template-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--p-text-color, #e8e8e8);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .alexandria-sidebar-template-count {
+    font-size: 11px;
+    color: var(--p-text-muted-color, #888);
+    background: var(--p-surface-ground, #1a1a2e);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .alexandria-sidebar-versions {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .alexandria-sidebar-version {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--p-surface-border, #2a2a4a);
+    transition: background 0.15s;
+  }
+  .alexandria-sidebar-version:last-child {
+    border-bottom: none;
+  }
+  .alexandria-sidebar-version:hover {
+    background: var(--p-surface-hover, rgba(255,255,255,0.05));
+  }
+  .alexandria-sidebar-version.current {
+    background: rgba(233, 69, 96, 0.1);
+  }
+
+  .alexandria-sidebar-version-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .alexandria-sidebar-version-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--p-text-color, #e8e8e8);
+  }
+  .alexandria-sidebar-version.current .alexandria-sidebar-version-label {
+    color: var(--alexandria-accent, #e94560);
+  }
+
+  .alexandria-sidebar-version-time {
+    font-size: 11px;
+    color: var(--p-text-muted-color, #888);
+  }
+
+  .alexandria-sidebar-btn-load {
+    padding: 4px 12px;
+    background: var(--p-surface-ground, #1a1a2e);
+    border: 1px solid var(--p-surface-border, #2a2a4a);
+    border-radius: 4px;
+    color: var(--p-text-color, #e8e8e8);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .alexandria-sidebar-btn-load:hover {
+    background: var(--alexandria-accent, #e94560);
+    border-color: var(--alexandria-accent, #e94560);
+    color: white;
+  }
+
+  .alexandria-sidebar-other {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--p-surface-card, #16213e);
+    border: 1px solid var(--p-surface-border, #2a2a4a);
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  .alexandria-sidebar-other-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .alexandria-sidebar-other-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--p-text-color, #e8e8e8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .alexandria-sidebar-other-workflow {
+    font-size: 10px;
+    color: var(--p-text-muted-color, #888);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+let sidebarStylesInjected = false;
+
+/**
+ * Inject sidebar-specific CSS styles
+ * Only injects once, safe to call multiple times
+ */
+export function injectSidebarStyles() {
+  if (sidebarStylesInjected) return;
+
+  const style = document.createElement('style');
+  style.id = 'alexandria-sidebar-styles';
+  style.textContent = SIDEBAR_CSS;
+  document.head.appendChild(style);
+  sidebarStylesInjected = true;
+
+  console.log('Alexandria: Sidebar styles injected');
 }
