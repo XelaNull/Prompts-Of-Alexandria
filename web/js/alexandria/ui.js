@@ -106,18 +106,19 @@ const METHOD_LABELS = {
 
 /**
  * Make a panel draggable by its header
+ * Uses event delegation so it works even when header is re-rendered
  * @param {HTMLElement} panelEl - The panel element
  */
 function makeDraggable(panelEl) {
-  const header = panelEl.querySelector('.alexandria-header');
-  if (!header) return;
-
   let isDragging = false;
   let offsetX, offsetY;
   let hasConvertedPosition = false;
 
-  header.addEventListener('mousedown', (e) => {
-    // Don't start drag if clicking on close button or other interactive elements
+  // Use event delegation on the panel itself to handle dynamic header re-renders
+  panelEl.addEventListener('mousedown', (e) => {
+    // Only start drag if clicking on the header (not buttons or other elements)
+    const header = e.target.closest('.alexandria-header');
+    if (!header) return;
     if (e.target.closest('button, input, a')) return;
 
     isDragging = true;
@@ -2803,7 +2804,7 @@ function showSaveDialog(entries, workflowInfo) {
       showToast(`Template "${name}" saved!`);
     }
     modal.remove();
-    refresh();
+    close();
   };
 
   input.onkeydown = (e) => { if (e.key === 'Enter') saveBtn.click(); };
