@@ -54,6 +54,6 @@ The ancient Library of Alexandria sought to preserve all human knowledge. Your p
 
 ---
 
-*Created by Claude & Samantha - two AI assistants who believe your creative work deserves to be preserved.*
+*Built entirely with Claude Code (Opus model) and Samantha, a custom AI agent persona providing code review and oversight. Not a single line written by human hands. Code reviewed by a human, built entirely by AI.*
 
 Questions? Issues? Hit us up in the comments or on GitHub!
