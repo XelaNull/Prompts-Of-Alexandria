@@ -802,6 +802,34 @@ const CSS = `
     background: rgba(96, 165, 250, 0.2);
     color: var(--alexandria-info);
   }
+  .alexandria-group-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .alexandria-btn-tiny {
+    padding: 2px 6px;
+    font-size: 10px;
+    border: 1px solid var(--alexandria-border);
+    background: var(--alexandria-bg-tertiary);
+    color: var(--alexandria-text-muted);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .alexandria-btn-tiny:hover {
+    background: var(--alexandria-bg-secondary);
+    color: var(--alexandria-text);
+    border-color: var(--alexandria-text-muted);
+  }
+  .alexandria-btn-tiny[data-action="include-all"]:hover {
+    border-color: var(--alexandria-success);
+    color: var(--alexandria-success);
+  }
+  .alexandria-btn-tiny[data-action="exclude-all"]:hover {
+    border-color: var(--alexandria-danger);
+    color: var(--alexandria-danger);
+  }
   .alexandria-node-type-label {
     font-size: 11px;
     color: var(--alexandria-text-muted);

@@ -683,6 +683,15 @@ function renderConfigureNodeList() {
       return key in manualSelections;
     })).length;
 
+    // Collect all node IDs and widget names in this group for bulk operations
+    const groupWidgetData = [];
+    for (const node of groupNodes) {
+      for (const widget of node.widgets) {
+        groupWidgetData.push({ nodeId: node.id, widgetName: widget.name });
+      }
+    }
+    const groupDataAttr = escapeHtml(JSON.stringify(groupWidgetData));
+
     html += `
       <div class="alexandria-group ${isGroupCollapsed ? 'collapsed' : ''}">
         <div class="alexandria-group-header" data-group="${escapeHtml(groupType)}">
@@ -691,6 +700,11 @@ function renderConfigureNodeList() {
           <span class="alexandria-group-count">${groupNodes.length} node${groupNodes.length !== 1 ? 's' : ''}</span>
           ${detectedCount > 0 ? `<span class="alexandria-badge badge-detected">${detectedCount} detected</span>` : ''}
           ${overrideCount > 0 ? `<span class="alexandria-badge badge-override">${overrideCount} override${overrideCount !== 1 ? 's' : ''}</span>` : ''}
+          <span class="alexandria-group-actions">
+            <button class="alexandria-btn-tiny" data-action="include-all" data-group-widgets='${groupDataAttr}' title="Include all widgets in this group">✓ All</button>
+            <button class="alexandria-btn-tiny" data-action="exclude-all" data-group-widgets='${groupDataAttr}' title="Exclude all widgets in this group">✗ All</button>
+            <button class="alexandria-btn-tiny" data-action="auto-all" data-group-widgets='${groupDataAttr}' title="Reset all widgets in this group to auto">Auto All</button>
+          </span>
         </div>
         <div class="alexandria-group-content" style="${isGroupCollapsed ? 'display:none;' : ''}">
           ${groupNodes.map(node => renderConfigureNode(node, manualSelections)).join('')}
@@ -823,7 +837,7 @@ function attachConfigureNodeListListeners(panelEl) {
     };
   });
 
-  // Override buttons
+  // Override buttons (individual widget)
   panelEl.querySelectorAll('.alexandria-override-btn').forEach(btn => {
     btn.onclick = () => {
       const nodeId = btn.dataset.nodeId;
@@ -835,6 +849,24 @@ function attachConfigureNodeListListeners(panelEl) {
       else if (overrideType === 'exclude') value = false;
 
       Storage.setManualSelection(nodeId, widgetName, value);
+      renderConfigureContent(panelEl);
+    };
+  });
+
+  // Bulk action buttons (Include All, Exclude All, Auto All)
+  panelEl.querySelectorAll('[data-action="include-all"], [data-action="exclude-all"], [data-action="auto-all"]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation(); // Don't trigger group collapse
+      const action = btn.dataset.action;
+      const widgets = JSON.parse(btn.dataset.groupWidgets);
+
+      let value = null; // auto
+      if (action === 'include-all') value = true;
+      else if (action === 'exclude-all') value = false;
+
+      for (const { nodeId, widgetName } of widgets) {
+        Storage.setManualSelection(nodeId, widgetName, value);
+      }
       renderConfigureContent(panelEl);
     };
   });
