@@ -471,6 +471,188 @@ if SERVER_AVAILABLE:
                 "message": str(e)
             })
 
+    # ============ Settings API (Server-Side Storage) ============
+
+    def _get_settings_file_path():
+        """Get path to the global settings file."""
+        storage_path = _get_storage_path()
+        return storage_path / "_settings.json"
+
+    def _load_settings():
+        """Load global settings from file."""
+        settings_path = _get_settings_file_path()
+        if settings_path.exists():
+            try:
+                with open(settings_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Alexandria: Error loading settings: {e}")
+        return {}
+
+    def _save_settings(settings):
+        """Save global settings to file."""
+        storage_path = _get_storage_path()
+        storage_path.mkdir(parents=True, exist_ok=True)
+        settings_path = _get_settings_file_path()
+        try:
+            with open(settings_path, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Alexandria: Error saving settings: {e}")
+            return False
+
+    @routes.get("/alexandria/settings")
+    async def get_settings(request):
+        """Get global settings from server storage."""
+        try:
+            settings = _load_settings()
+            return web.json_response({
+                "status": "ok",
+                "settings": settings
+            })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.post("/alexandria/settings")
+    async def save_settings_api(request):
+        """Save global settings to server storage."""
+        try:
+            data = await request.json()
+            settings = data.get("settings", {})
+
+            if _save_settings(settings):
+                return web.json_response({
+                    "status": "ok",
+                    "message": "Settings saved"
+                })
+            else:
+                return web.json_response({
+                    "status": "error",
+                    "message": "Failed to save settings"
+                })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    # ============ Workflow Overrides API (Per-Workflow Settings) ============
+
+    def _get_overrides_dir():
+        """Get path to the workflow overrides directory."""
+        storage_path = _get_storage_path()
+        return storage_path / "_workflow_overrides"
+
+    def _get_override_file_path(workflow_id):
+        """Get path to a specific workflow's override file."""
+        # Sanitize workflow_id for use as filename
+        safe_id = _sanitize_filename(workflow_id)
+        return _get_overrides_dir() / f"{safe_id}.json"
+
+    def _load_workflow_overrides(workflow_id):
+        """Load overrides for a specific workflow."""
+        override_path = _get_override_file_path(workflow_id)
+        if override_path.exists():
+            try:
+                with open(override_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Alexandria: Error loading workflow overrides: {e}")
+        return {}
+
+    def _save_workflow_overrides(workflow_id, overrides):
+        """Save overrides for a specific workflow."""
+        overrides_dir = _get_overrides_dir()
+        overrides_dir.mkdir(parents=True, exist_ok=True)
+        override_path = _get_override_file_path(workflow_id)
+        try:
+            with open(override_path, 'w', encoding='utf-8') as f:
+                json.dump(overrides, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Alexandria: Error saving workflow overrides: {e}")
+            return False
+
+    @routes.get("/alexandria/workflow-overrides/{workflow_id}")
+    async def get_workflow_overrides(request):
+        """Get manual selections/overrides for a specific workflow."""
+        try:
+            workflow_id = request.match_info.get('workflow_id', 'default')
+            overrides = _load_workflow_overrides(workflow_id)
+            return web.json_response({
+                "status": "ok",
+                "workflow_id": workflow_id,
+                "overrides": overrides
+            })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.post("/alexandria/workflow-overrides/{workflow_id}")
+    async def save_workflow_overrides(request):
+        """Save manual selections/overrides for a specific workflow."""
+        try:
+            workflow_id = request.match_info.get('workflow_id', 'default')
+            data = await request.json()
+            overrides = data.get("overrides", {})
+
+            if _save_workflow_overrides(workflow_id, overrides):
+                return web.json_response({
+                    "status": "ok",
+                    "workflow_id": workflow_id,
+                    "message": "Overrides saved"
+                })
+            else:
+                return web.json_response({
+                    "status": "error",
+                    "message": "Failed to save overrides"
+                })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
+    @routes.get("/alexandria/workflow-overrides")
+    async def list_workflow_overrides(request):
+        """List all workflow override files."""
+        try:
+            overrides_dir = _get_overrides_dir()
+            if not overrides_dir.exists():
+                return web.json_response({
+                    "status": "ok",
+                    "workflows": []
+                })
+
+            workflows = []
+            for file_path in overrides_dir.glob("*.json"):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        workflows.append({
+                            "id": file_path.stem,
+                            "name": data.get("workflowName", file_path.stem),
+                            "selectionCount": len(data.get("manualSelections", {}))
+                        })
+                except Exception:
+                    pass
+
+            return web.json_response({
+                "status": "ok",
+                "workflows": workflows
+            })
+        except Exception as e:
+            return web.json_response({
+                "status": "error",
+                "message": str(e)
+            })
+
 
 # ============ Node Registration ============
 

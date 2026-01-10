@@ -176,7 +176,9 @@ function makeDraggable(panelEl) {
 /**
  * Initialize the widget browser
  */
-export function init() {
+export async function init() {
+  // Initialize server-side storage (load settings, templates)
+  await Storage.initializeServerStorage();
   loadSelections();
   setupWorkflowHooks();
 }
@@ -193,7 +195,7 @@ function setupWorkflowHooks() {
       const result = await originalLoad(graphData, clean, ...args);
 
       // Try to extract workflow name from various sources after load
-      setTimeout(() => {
+      setTimeout(async () => {
         let name = null;
 
         // Check if graph has a filename set
@@ -217,8 +219,10 @@ function setupWorkflowHooks() {
         if (name) {
           // Normalize: remove .json extension
           name = name.replace(/\.json$/i, '').trim();
-          Storage.setTrackedWorkflowName(name);
-          console.log('Alexandria: Tracked workflow name from load:', name);
+          // Use workflow name as ID for per-workflow settings
+          const workflowId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          await Storage.refreshWorkflowContext(workflowId, name);
+          console.log('Alexandria: Loaded workflow context:', name, '(id:', workflowId + ')');
         }
       }, 100);
 
@@ -227,13 +231,14 @@ function setupWorkflowHooks() {
   }
 
   // Monitor for file input changes (workflow loaded from file picker)
-  document.addEventListener('change', (e) => {
+  document.addEventListener('change', async (e) => {
     if (e.target && e.target.type === 'file' && e.target.files && e.target.files[0]) {
       const filename = e.target.files[0].name;
       if (filename.endsWith('.json') || filename.endsWith('.png')) {
         const name = filename.replace(/\.(json|png)$/i, '').trim();
-        Storage.setTrackedWorkflowName(name);
-        console.log('Alexandria: Tracked workflow name from file input:', name);
+        const workflowId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        await Storage.refreshWorkflowContext(workflowId, name);
+        console.log('Alexandria: Loaded workflow context from file input:', name, '(id:', workflowId + ')');
       }
     }
   }, true);
@@ -242,13 +247,16 @@ function setupWorkflowHooks() {
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       // After save, check if document title updated
-      setTimeout(() => {
+      setTimeout(async () => {
         if (document.title && document.title !== 'ComfyUI') {
           const match = document.title.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
           if (match) {
             const name = match[1].trim().replace(/\.json$/i, '');
+            const workflowId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+            // Update tracking (overrides likely already loaded)
             Storage.setTrackedWorkflowName(name);
-            console.log('Alexandria: Tracked workflow name from save:', name);
+            Storage.setCurrentWorkflowOverridesId(workflowId);
+            console.log('Alexandria: Updated workflow context from save:', name);
           }
         }
       }, 500);
@@ -717,10 +725,10 @@ function attachConfigureListeners(panelEl) {
 
   // Detection mode toggle
   panelEl.querySelectorAll('.alexandria-mode-btn').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       panelEl.querySelectorAll('.alexandria-mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      Storage.setDetectionMode(btn.dataset.mode);
+      await Storage.setDetectionMode(btn.dataset.mode);
       // Reload selections with new detection mode
       loadSelections();
       renderConfigureContent(panelEl);
@@ -852,11 +860,16 @@ function renderConfigureNodeList() {
       return key in manualSelections;
     })).length;
 
-    // Collect all node IDs and widget names in this group for bulk operations
+    // Collect all node types, titles, and widget names in this group for bulk operations
+    // Uses stable keys for cross-device consistency
     const groupWidgetData = [];
     for (const node of groupNodes) {
       for (const widget of node.widgets) {
-        groupWidgetData.push({ nodeId: node.id, widgetName: widget.name });
+        groupWidgetData.push({
+          nodeType: node.type,
+          nodeTitle: node.title,
+          widgetName: widget.name
+        });
       }
     }
     const groupDataAttr = escapeHtml(JSON.stringify(groupWidgetData));
@@ -918,11 +931,12 @@ function renderConfigureNode(node, manualSelections) {
 
 /**
  * Render a widget row for configure mode with override controls
- * Uses nodeId:widgetName for per-instance overrides
+ * Uses nodeType:nodeTitle:widgetName for stable cross-device overrides
  */
 function renderConfigureWidget(node, widget, manualSelections) {
-  const key = `${node.id}:${widget.name}`;
-  const override = manualSelections[key];
+  // Use stable key format for cross-device consistency
+  const stableKey = Storage.getStableWidgetKey(node.type, node.title, widget.name);
+  const override = manualSelections[stableKey];
   const preview = getValuePreview(widget.value);
 
   // Determine current state: 'include', 'exclude', or 'auto'
@@ -939,17 +953,20 @@ function renderConfigureWidget(node, widget, manualSelections) {
       <div class="alexandria-widget-value">${escapeHtml(preview)}</div>
       <div class="alexandria-override-controls">
         <button class="alexandria-override-btn ${state === 'include' ? 'active include' : ''}"
-          data-node-id="${node.id}"
+          data-node-type="${escapeHtml(node.type)}"
+          data-node-title="${escapeHtml(node.title)}"
           data-widget-name="${escapeHtml(widget.name)}"
           data-override="include"
           title="Always include this widget in saves">✓ Include</button>
         <button class="alexandria-override-btn ${state === 'auto' ? 'active auto' : ''}"
-          data-node-id="${node.id}"
+          data-node-type="${escapeHtml(node.type)}"
+          data-node-title="${escapeHtml(node.title)}"
           data-widget-name="${escapeHtml(widget.name)}"
           data-override="auto"
           title="Use automatic detection">Auto</button>
         <button class="alexandria-override-btn ${state === 'exclude' ? 'active exclude' : ''}"
-          data-node-id="${node.id}"
+          data-node-type="${escapeHtml(node.type)}"
+          data-node-title="${escapeHtml(node.title)}"
           data-widget-name="${escapeHtml(widget.name)}"
           data-override="exclude"
           title="Never include this widget in saves">✗ Exclude</button>
@@ -1008,8 +1025,9 @@ function attachConfigureNodeListListeners(panelEl) {
 
   // Override buttons (individual widget)
   panelEl.querySelectorAll('.alexandria-override-btn').forEach(btn => {
-    btn.onclick = () => {
-      const nodeId = btn.dataset.nodeId;
+    btn.onclick = async () => {
+      const nodeType = btn.dataset.nodeType;
+      const nodeTitle = btn.dataset.nodeTitle;
       const widgetName = btn.dataset.widgetName;
       const overrideType = btn.dataset.override;
 
@@ -1017,14 +1035,14 @@ function attachConfigureNodeListListeners(panelEl) {
       if (overrideType === 'include') value = true;
       else if (overrideType === 'exclude') value = false;
 
-      Storage.setManualSelection(nodeId, widgetName, value);
+      await Storage.setManualSelection(nodeType, nodeTitle, widgetName, value);
       renderConfigureContent(panelEl);
     };
   });
 
   // Bulk action buttons (Include All, Exclude All, Auto All)
   panelEl.querySelectorAll('[data-action="include-all"], [data-action="exclude-all"], [data-action="auto-all"]').forEach(btn => {
-    btn.onclick = (e) => {
+    btn.onclick = async (e) => {
       e.stopPropagation(); // Don't trigger group collapse
       const action = btn.dataset.action;
       const widgets = JSON.parse(btn.dataset.groupWidgets);
@@ -1033,8 +1051,8 @@ function attachConfigureNodeListListeners(panelEl) {
       if (action === 'include-all') value = true;
       else if (action === 'exclude-all') value = false;
 
-      for (const { nodeId, widgetName } of widgets) {
-        Storage.setManualSelection(nodeId, widgetName, value);
+      for (const { nodeType, nodeTitle, widgetName } of widgets) {
+        await Storage.setManualSelection(nodeType, nodeTitle, widgetName, value);
       }
       renderConfigureContent(panelEl);
     };
@@ -2394,6 +2412,7 @@ function renderWidget(node, widget) {
             ${isSelected ? 'checked' : ''}
             data-node-id="${node.id}"
             data-node-type="${escapeHtml(node.type)}"
+            data-node-title="${escapeHtml(node.title)}"
             data-widget-name="${escapeHtml(widget.name)}" />
           <span class="alexandria-widget-name">${escapeHtml(widget.name)}</span>
           ${widget.isDetected ? `<span class="alexandria-confidence">Auto-Detected ${METHOD_LABELS[widget.method] || widget.method} ${widget.confidence}% - To be Saved!</span>` : ''}
@@ -2562,15 +2581,16 @@ function attachContentListeners() {
 
   // Checkboxes
   panel.querySelectorAll('.alexandria-widget-checkbox').forEach(cb => {
-    cb.onchange = (e) => {
+    cb.onchange = async (e) => {
       const key = `${e.target.dataset.nodeId}:${e.target.dataset.widgetName}`;
       selectedWidgets.set(key, e.target.checked);
 
       // Save manual selection for low-confidence detections
       const detection = Detection.detectAllPrompts().get(key);
       if (!detection || detection.confidence < 50) {
-        Storage.setManualSelection(
+        await Storage.setManualSelection(
           e.target.dataset.nodeType,
+          e.target.dataset.nodeTitle,
           e.target.dataset.widgetName,
           e.target.checked ? true : null
         );
@@ -3343,13 +3363,14 @@ function attachEmbeddedContentListeners(panelEl) {
 
   // Checkboxes
   panelEl.querySelectorAll('.alexandria-widget-checkbox').forEach(cb => {
-    cb.onchange = (e) => {
+    cb.onchange = async (e) => {
       const key = `${e.target.dataset.nodeId}:${e.target.dataset.widgetName}`;
       selectedWidgets.set(key, e.target.checked);
       const detection = Detection.detectAllPrompts().get(key);
       if (!detection || detection.confidence < 50) {
-        Storage.setManualSelection(
+        await Storage.setManualSelection(
           e.target.dataset.nodeType,
+          e.target.dataset.nodeTitle,
           e.target.dataset.widgetName,
           e.target.checked ? true : null
         );

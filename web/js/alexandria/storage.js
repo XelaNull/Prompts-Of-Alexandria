@@ -1,19 +1,12 @@
 /**
  * Alexandria Storage Module
- * Handles server-side file storage for templates (cross-PC access),
- * and localStorage for settings and manual selections.
+ * Handles server-side file storage for templates, settings, and manual selections.
+ * All data is stored on the server for cross-PC access.
  *
  * @module alexandria/storage
  */
 
-// Storage keys - centralized to prevent typos
-const STORAGE_KEYS = {
-  MANUAL_SELECTIONS: 'alexandria_manual',
-  SETTINGS: 'alexandria_settings',
-  TEMPLATE_ORDER: 'alexandria_template_order',
-};
-
-// Default settings
+// Default settings (used when server has no settings yet)
 const DEFAULT_SETTINGS = {
   retention: {
     maxVersionsPerTemplate: 20,
@@ -23,7 +16,7 @@ const DEFAULT_SETTINGS = {
   detectionMode: 'precise', // 'lazy' = include more widgets, 'precise' = only high-confidence prompts
 };
 
-// Storage key for tracked workflow name (hooked from save/load events)
+// Storage key for tracked workflow name (kept in localStorage as it's session-specific)
 const WORKFLOW_NAME_KEY = 'alexandria_current_workflow';
 
 // Storage key for current storage directory
@@ -33,9 +26,16 @@ const STORAGE_DIR_KEY = 'alexandria_storage_directory';
 let _currentStorageDir = null;
 
 // Templates cache - loaded from server file storage
-// This ensures templates are accessible from any PC
 let _templatesCache = [];
 let _templatesCacheLoaded = false;
+
+// Settings cache - loaded from server
+let _settingsCache = null;
+let _settingsCacheLoaded = false;
+
+// Manual selections cache - loaded from server per workflow
+let _manualSelectionsCache = {};
+let _currentWorkflowOverridesId = null;
 
 // ============ File Storage API ============
 
@@ -243,15 +243,80 @@ function safeSet(key, value) {
   }
 }
 
-// ============ Settings ============
+// ============ Settings (Server-Side Storage) ============
 
-export function getSettings() {
-  const stored = safeGet(STORAGE_KEYS.SETTINGS, {});
-  return { ...DEFAULT_SETTINGS, ...stored };
+/**
+ * Load settings from server
+ * @returns {Promise<Object>} Settings object
+ */
+export async function loadSettingsFromServer() {
+  try {
+    const response = await fetch('/alexandria/settings');
+    const data = await response.json();
+    if (data.status === 'ok') {
+      _settingsCache = { ...DEFAULT_SETTINGS, ...data.settings };
+      _settingsCacheLoaded = true;
+      return _settingsCache;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not load settings from server', e);
+  }
+  _settingsCache = { ...DEFAULT_SETTINGS };
+  _settingsCacheLoaded = true;
+  return _settingsCache;
 }
 
-export function saveSettings(settings) {
-  return safeSet(STORAGE_KEYS.SETTINGS, settings);
+/**
+ * Save settings to server
+ * @param {Object} settings - Settings to save
+ * @returns {Promise<boolean>} Success status
+ */
+export async function saveSettingsToServer(settings) {
+  try {
+    const response = await fetch('/alexandria/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings })
+    });
+    const data = await response.json();
+    if (data.status === 'ok') {
+      _settingsCache = { ...DEFAULT_SETTINGS, ...settings };
+      return true;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not save settings to server', e);
+  }
+  return false;
+}
+
+/**
+ * Get settings (from cache - call loadSettingsFromServer first)
+ * @returns {Object} Settings object
+ */
+export function getSettings() {
+  if (!_settingsCacheLoaded) {
+    console.warn('Alexandria: Settings cache not loaded - using defaults');
+    return { ...DEFAULT_SETTINGS };
+  }
+  return _settingsCache || { ...DEFAULT_SETTINGS };
+}
+
+/**
+ * Save settings (async, saves to server)
+ * @param {Object} settings - Settings to save
+ * @returns {Promise<boolean>} Success status
+ */
+export async function saveSettings(settings) {
+  _settingsCache = { ...DEFAULT_SETTINGS, ...settings };
+  return saveSettingsToServer(settings);
+}
+
+/**
+ * Check if settings have been loaded
+ * @returns {boolean}
+ */
+export function isSettingsCacheLoaded() {
+  return _settingsCacheLoaded;
 }
 
 export function isDebugEnabled() {
@@ -267,13 +332,14 @@ export function getDetectionMode() {
 }
 
 /**
- * Set detection mode
+ * Set detection mode (async, saves to server)
  * @param {string} mode - 'lazy' or 'precise'
+ * @returns {Promise<boolean>} Success status
  */
-export function setDetectionMode(mode) {
+export async function setDetectionMode(mode) {
   const settings = getSettings();
   settings.detectionMode = mode;
-  saveSettings(settings);
+  return saveSettings(settings);
 }
 
 // ============ Tracked Workflow Name ============
@@ -306,19 +372,123 @@ export function setTrackedWorkflowName(name) {
   }
 }
 
-// ============ Manual Selections ============
+// ============ Manual Selections (Server-Side Per-Workflow Storage) ============
 
+/**
+ * Generate a stable widget key that works across sessions and devices
+ * Uses nodeType:nodeTitle:widgetName format instead of nodeId
+ * @param {string} nodeType - Node type
+ * @param {string} nodeTitle - Node title (or type if no title)
+ * @param {string} widgetName - Widget name
+ * @returns {string} Stable widget key
+ */
+export function getStableWidgetKey(nodeType, nodeTitle, widgetName) {
+  // Normalize the key to handle minor differences
+  const type = (nodeType || 'unknown').trim();
+  const title = (nodeTitle || nodeType || 'unknown').trim();
+  const widget = (widgetName || 'unknown').trim();
+  return `${type}:${title}:${widget}`;
+}
+
+/**
+ * Load manual selections for the current workflow from server
+ * @param {string} workflowId - Workflow ID to load overrides for
+ * @returns {Promise<Object>} Manual selections object
+ */
+export async function loadManualSelectionsFromServer(workflowId) {
+  if (!workflowId) {
+    console.warn('Alexandria: No workflow ID provided for loading manual selections');
+    return {};
+  }
+
+  try {
+    const response = await fetch(`/alexandria/workflow-overrides/${encodeURIComponent(workflowId)}`);
+    const data = await response.json();
+    if (data.status === 'ok') {
+      _manualSelectionsCache = data.overrides?.manualSelections || {};
+      _currentWorkflowOverridesId = workflowId;
+      return _manualSelectionsCache;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not load manual selections from server', e);
+  }
+  _manualSelectionsCache = {};
+  _currentWorkflowOverridesId = workflowId;
+  return _manualSelectionsCache;
+}
+
+/**
+ * Save manual selections for the current workflow to server
+ * @param {string} workflowId - Workflow ID
+ * @param {Object} selections - Manual selections to save
+ * @param {string} workflowName - Optional workflow name for display
+ * @returns {Promise<boolean>} Success status
+ */
+export async function saveManualSelectionsToServer(workflowId, selections, workflowName = null) {
+  if (!workflowId) {
+    console.warn('Alexandria: No workflow ID provided for saving manual selections');
+    return false;
+  }
+
+  try {
+    const response = await fetch(`/alexandria/workflow-overrides/${encodeURIComponent(workflowId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        overrides: {
+          workflowName: workflowName,
+          manualSelections: selections,
+          updatedAt: new Date().toISOString()
+        }
+      })
+    });
+    const data = await response.json();
+    if (data.status === 'ok') {
+      _manualSelectionsCache = selections;
+      _currentWorkflowOverridesId = workflowId;
+      return true;
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not save manual selections to server', e);
+  }
+  return false;
+}
+
+/**
+ * Get manual selections (from cache - must load first)
+ * @returns {Object} Manual selections object
+ */
 export function getManualSelections() {
-  return safeGet(STORAGE_KEYS.MANUAL_SELECTIONS, {});
+  return _manualSelectionsCache || {};
 }
 
-export function saveManualSelections(selections) {
-  return safeSet(STORAGE_KEYS.MANUAL_SELECTIONS, selections);
+/**
+ * Save manual selections (async, saves to server)
+ * Uses the current workflow context
+ * @param {Object} selections - Selections to save
+ * @returns {Promise<boolean>} Success status
+ */
+export async function saveManualSelections(selections) {
+  _manualSelectionsCache = selections;
+  if (_currentWorkflowOverridesId) {
+    const workflowName = getTrackedWorkflowName();
+    return saveManualSelectionsToServer(_currentWorkflowOverridesId, selections, workflowName);
+  }
+  console.warn('Alexandria: Cannot save manual selections - no workflow context');
+  return false;
 }
 
-export function setManualSelection(nodeType, widgetName, include) {
+/**
+ * Set a single manual selection using stable key
+ * @param {string} nodeType - Node type
+ * @param {string} nodeTitle - Node title
+ * @param {string} widgetName - Widget name
+ * @param {boolean|null} include - true to include, false to exclude, null to remove
+ * @returns {Promise<boolean>} Success status
+ */
+export async function setManualSelection(nodeType, nodeTitle, widgetName, include) {
   const selections = getManualSelections();
-  const key = `${nodeType}:${widgetName}`;
+  const key = getStableWidgetKey(nodeType, nodeTitle, widgetName);
 
   if (include === null || include === undefined) {
     delete selections[key];
@@ -329,10 +499,33 @@ export function setManualSelection(nodeType, widgetName, include) {
   return saveManualSelections(selections);
 }
 
-export function getManualSelection(nodeType, widgetName) {
+/**
+ * Get a single manual selection using stable key
+ * @param {string} nodeType - Node type
+ * @param {string} nodeTitle - Node title
+ * @param {string} widgetName - Widget name
+ * @returns {boolean|null} true/false if set, null if not set
+ */
+export function getManualSelection(nodeType, nodeTitle, widgetName) {
   const selections = getManualSelections();
-  const key = `${nodeType}:${widgetName}`;
+  const key = getStableWidgetKey(nodeType, nodeTitle, widgetName);
   return key in selections ? selections[key] : null;
+}
+
+/**
+ * Get the current workflow overrides ID
+ * @returns {string|null} Current workflow ID or null
+ */
+export function getCurrentWorkflowOverridesId() {
+  return _currentWorkflowOverridesId;
+}
+
+/**
+ * Set the current workflow context for manual selections
+ * @param {string} workflowId - Workflow ID
+ */
+export function setCurrentWorkflowOverridesId(workflowId) {
+  _currentWorkflowOverridesId = workflowId;
 }
 
 // ============ Templates (Server File Storage) ============
@@ -1011,5 +1204,48 @@ export async function getTemplateByNameFromFiles(name) {
   return templates.find(t => t.name === name) || null;
 }
 
+// ============ Initialization ============
+
+/**
+ * Initialize server-side storage - loads settings and templates
+ * Should be called early in the extension setup
+ * @param {string} workflowId - Optional workflow ID for loading overrides
+ * @returns {Promise<void>}
+ */
+export async function initializeServerStorage(workflowId = null) {
+  console.log('Alexandria: Initializing server-side storage...');
+
+  // Load settings from server
+  await loadSettingsFromServer();
+  console.log('Alexandria: Settings loaded from server');
+
+  // Load templates from server
+  await refreshTemplatesFromServer();
+  console.log(`Alexandria: ${_templatesCache.length} templates loaded from server`);
+
+  // Load workflow overrides if workflow ID provided
+  if (workflowId) {
+    await loadManualSelectionsFromServer(workflowId);
+    console.log(`Alexandria: Workflow overrides loaded for ${workflowId}`);
+  }
+}
+
+/**
+ * Refresh all server-side data for a workflow context
+ * Call this when the workflow changes
+ * @param {string} workflowId - Workflow ID
+ * @param {string} workflowName - Workflow name
+ * @returns {Promise<void>}
+ */
+export async function refreshWorkflowContext(workflowId, workflowName) {
+  if (workflowId) {
+    setCurrentWorkflowOverridesId(workflowId);
+    await loadManualSelectionsFromServer(workflowId);
+  }
+  if (workflowName) {
+    setTrackedWorkflowName(workflowName);
+  }
+}
+
 // Re-export utilities that other modules may need
-export { computeEntriesHash, generateId };
+export { computeEntriesHash, generateId, getStableWidgetKey };

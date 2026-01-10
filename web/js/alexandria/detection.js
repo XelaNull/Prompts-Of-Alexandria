@@ -582,7 +582,7 @@ function detectByWidgetType() {
 /**
  * Method 7: Manual Overrides (100% confidence for includes, marks exclusions)
  * Applies user-specified inclusions and exclusions.
- * Keys are now per-instance: "nodeId:widgetName" for specific node control.
+ * Keys use stable format: "nodeType:nodeTitle:widgetName" for cross-device consistency.
  *
  * @param {Map} results - Existing detection results (mutated)
  * @returns {Map} Modified results
@@ -591,18 +591,29 @@ function applyManualOverrides(results) {
   const manualSelections = Storage.getManualSelections();
   if (!app.graph?._nodes) return results;
 
+  // Build a lookup map of stable keys to nodes/widgets for faster matching
+  const stableKeyToNodeWidget = new Map();
+  for (const node of app.graph._nodes) {
+    if (!node.widgets) continue;
+    for (const widget of node.widgets) {
+      const nodeTitle = node.title || node.type;
+      const stableKey = Storage.getStableWidgetKey(node.type, nodeTitle, widget.name);
+      // If multiple nodes match the same stable key, we use the first one
+      // (this handles edge cases with duplicate nodes)
+      if (!stableKeyToNodeWidget.has(stableKey)) {
+        stableKeyToNodeWidget.set(stableKey, { node, widget });
+      }
+    }
+  }
+
   // First pass: add manual inclusions
-  for (const [key, include] of Object.entries(manualSelections)) {
+  for (const [stableKey, include] of Object.entries(manualSelections)) {
     if (!include) continue;
-    const [nodeIdStr, widgetName] = key.split(':');
-    const nodeId = parseInt(nodeIdStr, 10);
-    const node = app.graph._nodes.find(n => n.id === nodeId);
 
-    if (!node) continue; // Node no longer exists in workflow
+    const match = stableKeyToNodeWidget.get(stableKey);
+    if (!match) continue; // Node/widget no longer exists in workflow
 
-    const widget = node.widgets?.find(w => w.name === widgetName);
-    if (!widget) continue;
-
+    const { node, widget } = match;
     const resultKey = `${node.id}:${widget.name}`;
     results.set(resultKey, {
       node,
@@ -613,12 +624,14 @@ function applyManualOverrides(results) {
   }
 
   // Second pass: mark exclusions
-  for (const [key, include] of Object.entries(manualSelections)) {
+  for (const [stableKey, include] of Object.entries(manualSelections)) {
     if (include !== false) continue;
-    const [nodeIdStr, widgetName] = key.split(':');
-    const nodeId = parseInt(nodeIdStr, 10);
 
-    const resultKey = `${nodeId}:${widgetName}`;
+    const match = stableKeyToNodeWidget.get(stableKey);
+    if (!match) continue;
+
+    const { node, widget } = match;
+    const resultKey = `${node.id}:${widget.name}`;
     if (results.has(resultKey)) {
       results.get(resultKey).excluded = true;
     }
