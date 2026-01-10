@@ -980,6 +980,20 @@ function attachTemplateListListeners(panelEl) {
       confirmDeleteTemplate(btn.dataset.templateId);
     };
   });
+
+  // Toggle other workflows section
+  panelEl.querySelectorAll('[data-action="toggle-other-workflows"]').forEach(header => {
+    header.onclick = () => {
+      const section = header.closest('.alexandria-template-section-other');
+      const content = section?.querySelector('.alexandria-template-section-content');
+      const toggle = header.querySelector('.alexandria-template-section-toggle');
+      if (content && toggle) {
+        const isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? 'block' : 'none';
+        toggle.textContent = isHidden ? '▼' : '▶';
+      }
+    };
+  });
 }
 
 /**
