@@ -1,0 +1,3 @@
+# Prompts of Alexandria - ComfyUI Extension
+# No external dependencies required.
+# This extension uses only Python standard library and ComfyUI built-ins.

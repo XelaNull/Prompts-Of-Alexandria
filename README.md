@@ -1,14 +1,19 @@
 # Prompts of Alexandria
 
+> *The ancient Library of Alexandria sought to preserve all human knowledge, yet was lost to time. We carry that torch forward—your prompts are spells that conjure beauty from nothing, and they deserve to be saved.*
+
 A ComfyUI extension for template-based backup and restoration of text prompts across workflows.
 
-Save your carefully crafted prompts as reusable templates, switch between prompt sets with one click, and never lose your work again.
+**Never lose a prompt again.** Save your carefully crafted prompts as reusable templates, switch between prompt sets with one click, restore them to any workflow, and share them with others.
+
+*Created with care by Claude & Samantha.*
 
 ## Features
 
 - **Smart Prompt Detection** - Automatically finds prompt widgets using 7 detection methods with confidence scoring
 - **Template Management** - Save, load, rename, delete, and version your prompt templates
 - **One-Click Restore** - Load entire prompt sets back into your workflow instantly
+- **Configure Detection** - Fine-tune which widgets to include or exclude, with per-instance control
 - **Workflow Nodes** - Drop-in nodes for automatic saves during generation
 - **Import/Export** - Backup all templates to JSON, share with others
 - **Version History** - Templates keep history with automatic retention policies
@@ -47,9 +52,9 @@ Restart ComfyUI.
 
 ## Usage
 
-### Toolbar Button
+### Sidebar Icon
 
-Click the **📜 Alexandria** button in the ComfyUI toolbar to open the main panel.
+Click the **📜 Prompts** icon in the ComfyUI left sidebar to open the main panel.
 
 ### Panel Overview
 
@@ -72,7 +77,7 @@ Click the **📜 Alexandria** button in the ComfyUI toolbar to open the main pan
 
 ### Saving Templates
 
-1. Click **📜 Alexandria** to open the panel
+1. Click **📜 Prompts** in the sidebar (or **Open Panel** on the Control node)
 2. Click the **Browse Widgets** tab
 3. Detected prompts are pre-selected (checkboxes)
 4. Optionally select/deselect widgets manually
@@ -107,6 +112,28 @@ Add Alexandria nodes to your workflow for automatic prompt management:
 ```
 
 The Control Panel outputs the template name to the Save node. When the workflow executes, Alexandria Save triggers a save of all detected prompts to that template. The Save node also has a `name_override` option if you want to use a different name than what the Control Panel provides.
+
+### Configure Detection
+
+Customize which widgets are included or excluded from prompt saves:
+
+1. Click **Configure Detection** on the Control Panel node, or select it from the main panel
+2. Browse all workflow nodes and their widgets
+3. Use the toggle buttons on each widget:
+   - **✓ Include** - Always include this widget in saves (green)
+   - **Auto** - Use automatic detection (default)
+   - **✗ Exclude** - Never include this widget in saves (red)
+
+**Bulk Actions:** Each group has **✓ All**, **✗ All**, and **Auto All** buttons to configure all widgets in that group at once.
+
+**Per-Instance Overrides:** Overrides are stored per node instance (by node ID), so you can include "mode" on node #5 without affecting node #6's "mode" widget.
+
+**Filters:**
+- **All Widgets** - Show everything
+- **Detected Only** - Show only auto-detected prompts
+- **Overrides Only** - Show only widgets with manual overrides
+
+Overrides persist in localStorage and affect all future template saves.
 
 ## Detection Methods
 
@@ -273,9 +300,11 @@ MIT License - see LICENSE file
 
 ## Credits
 
-Created by Claude & Samantha
+**Created entirely by Claude & Samantha** — two AI assistants who believe your creative work deserves to be preserved.
 
-Reviewed by Mitch (who found all the edge cases)
+Not a single line of code was written by human hands. Mitch provided the vision and guided our creative energies, but the implementation is purely AI-crafted.
+
+This extension is our gift to the ComfyUI community. May your prompts live forever.
 
 ---
 

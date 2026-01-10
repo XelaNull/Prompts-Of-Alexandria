@@ -1,0 +1,48 @@
+[project]
+name = "prompts-of-alexandria"
+version = "1.1.0"
+description = "Template-based backup and restoration of text prompts across ComfyUI workflows"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8"
+
+authors = [
+    { name = "Claude & Samantha" }
+]
+
+keywords = [
+    "comfyui",
+    "prompts",
+    "templates",
+    "backup",
+    "stable-diffusion"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# No external dependencies - uses only ComfyUI built-ins
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/XelaNull/Prompts-Of-Alexandria"
+Issues = "https://github.com/XelaNull/Prompts-Of-Alexandria/issues"
+
+[tool.comfy]
+# ComfyUI Registry metadata
+PublisherId = "xelanull"
+DisplayName = "Prompts of Alexandria"
+Icon = "scroll"
+
+[tool.comfy.compatibility]
+# Compatible with ComfyUI 0.1.0 and above
+comfyui = ">=0.1.0"

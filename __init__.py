@@ -10,7 +10,7 @@ Phase 3: Alexandria Save Node and Control Node
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
 # Extension info
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "Claude & Samantha"
 
 # Web directory for frontend files (relative to this module)

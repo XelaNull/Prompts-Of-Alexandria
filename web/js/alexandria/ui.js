@@ -281,9 +281,19 @@ function renderPanelContent(panelEl) {
       <div class="alexandria-header">
         <div class="alexandria-title">
           <span class="alexandria-icon">📜</span>
-          Prompts
+          Prompts of Alexandria
         </div>
         <button class="alexandria-close">&times;</button>
+      </div>
+      <div class="alexandria-welcome">
+        <p class="alexandria-welcome-text">
+          The ancient Library of Alexandria sought to preserve all human knowledge,
+          yet was lost to time. We carry that torch forward—your prompts are spells
+          that conjure beauty from nothing, and they deserve to be saved.
+        </p>
+        <p class="alexandria-welcome-subtext">
+          Never lose a prompt again. Save your work, restore it anywhere, share it with others.
+        </p>
       </div>
       <div class="alexandria-landing">
         <div class="alexandria-landing-card" data-action="go-create">

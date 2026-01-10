@@ -200,13 +200,32 @@ const CSS = `
     background: var(--alexandria-bg-tertiary);
   }
 
+  /* ============ Welcome Message ============ */
+  .alexandria-welcome {
+    padding: 20px 30px 0 30px;
+    text-align: center;
+  }
+  .alexandria-welcome-text {
+    font-size: 14px;
+    color: var(--alexandria-text);
+    line-height: 1.6;
+    margin: 0 0 8px 0;
+    font-style: italic;
+    opacity: 0.9;
+  }
+  .alexandria-welcome-subtext {
+    font-size: 12px;
+    color: var(--alexandria-text-muted);
+    margin: 0;
+  }
+
   /* ============ Landing Page ============ */
   .alexandria-landing {
     display: flex;
     flex: 1;
     flex-wrap: wrap;
     gap: 20px;
-    padding: 40px 30px;
+    padding: 24px 30px;
     justify-content: center;
     align-items: center;
   }
