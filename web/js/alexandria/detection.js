@@ -700,9 +700,12 @@ export function getWorkflowIdentity() {
   // ComfyUI stores this in various places depending on version
   const filename = getWorkflowFilename();
   if (filename) {
+    // Normalize: remove .json extension for consistent ID generation
+    // Different detection methods may or may not include the extension
+    const normalizedName = filename.replace(/\.json$/i, '').trim();
     return {
-      id: generateWorkflowHash(filename),
-      name: filename.replace(/\.json$/i, ''),
+      id: generateWorkflowHash(normalizedName),
+      name: normalizedName,
       source: 'filename',
       isSaved: true
     };

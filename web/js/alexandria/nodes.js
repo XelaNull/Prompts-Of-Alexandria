@@ -48,12 +48,13 @@ export function setupWebSocketHandlers() {
 /**
  * Handle save trigger from node execution
  * @param {string} templateName - Template name to save to
+ * @returns {boolean} True if save succeeded, false otherwise
  */
 export function handleNodeSave(templateName) {
   // Race condition guard - prevent concurrent saves from duplicating
   if (saveInProgress) {
     console.log('Alexandria: Save already in progress, skipping');
-    return;
+    return false;
   }
 
   saveInProgress = true;
@@ -66,14 +67,15 @@ export function handleNodeSave(templateName) {
     if (!workflowIdentity.isSaved) {
       console.error('Alexandria: Cannot save template - workflow not saved');
       UI.showToast?.('Please save your workflow first (Ctrl+S) before saving templates', 'error');
-      return;
+      return false;
     }
 
     const entries = Detection.createTemplateEntries();
 
     if (!entries || entries.length === 0) {
       console.log('Alexandria: No prompts detected to save');
-      return;
+      UI.showToast?.('No prompts detected to save', 'warning');
+      return false;
     }
 
     // Check for changes using hash
@@ -84,7 +86,8 @@ export function handleNodeSave(templateName) {
       if (Storage.isDebugEnabled()) {
         console.log(`Alexandria: No changes for "${templateName}", skipping save`);
       }
-      return;
+      // No changes is not a failure, just nothing to do
+      return true;
     }
 
     // Save or update template
@@ -99,7 +102,7 @@ export function handleNodeSave(templateName) {
     } else {
       success = Storage.createTemplate(templateName, entries, workflowIdentity) !== null;
       if (success) {
-        console.log(`Alexandria: Created template "${templateName}" (${entries.length} prompts)`);
+        console.log(`Alexandria: Created template "${templateName}" for workflow "${workflowIdentity.name}" (${entries.length} prompts)`);
       }
     }
 
@@ -116,6 +119,8 @@ export function handleNodeSave(templateName) {
       console.error(`Alexandria: Failed to save template "${templateName}" - localStorage may be full`);
       UI.showToast?.('Failed to save - storage may be full', 'error');
     }
+
+    return success;
   } finally {
     saveInProgress = false;
   }
@@ -137,8 +142,10 @@ export function addControlNodeWidgets(node) {
   // Add Save Now button
   node.addWidget("button", "Save Now", null, () => {
     const templateName = getTemplateName();
-    handleNodeSave(templateName);
-    UI.showToast?.(`Saved "${templateName}"`);
+    const success = handleNodeSave(templateName);
+    if (success) {
+      UI.showToast?.(`Saved "${templateName}"`);
+    }
   });
 
   // Add Open Panel button
