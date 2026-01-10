@@ -1,36 +1,28 @@
 # Prompts of Alexandria v0.5.0 - Never Lose a Prompt Again
 
-**TL;DR:** A ComfyUI extension that automatically detects and saves your prompts as versioned templates. Quick-access sidebar panel, one-click restore, and zero dependencies.
+**TL;DR:** Made a thing that auto-saves your prompts with version history. Zero dependencies, just clone and go.
 
 ---
 
-## The Problem
+So I got tired of losing prompts. You know the feeling - you spend 20 minutes getting that prompt *just right*, tweak one thing, queue another gen... and accidentally paste over it. Gone forever.
 
-You've spent 20 minutes crafting the perfect prompt. The lighting is *chef's kiss*. The composition nails that exact vibe you wanted. You tweak one parameter, queue another generation... and accidentally paste over your prompt.
+Or worse - you're juggling 15 different scene prompts and switching between them means digging through notepad files like a caveman.
 
-Gone. Forever.
+**Prompts of Alexandria** fixes this. It auto-detects your prompt nodes, saves them as templates with full version history, and lets you restore any version with one click from a sidebar panel.
 
-Or maybe you're like me - you have 15 different "scene" prompts you rotate through, and switching between them means copy-pasting from a notepad file like some kind of caveman.
+---
 
-## The Solution
+**The good stuff:**
 
-**Prompts of Alexandria** automatically detects your prompt widgets, saves them as versioned templates, and lets you restore them with one click.
+- Smart detection that actually works - finds your prompts automatically across CLIPTextEncode, SDXL, custom nodes, whatever
+- Full version history - overwrote something? just load the previous version
+- Sidebar quick-access - click the book icon, see all your templates, one-click load
+- Two-node auto-save - drop Control + Save nodes in your workflow, it saves on every gen (only when things actually change)
+- Zero dependencies - just clone to custom_nodes and restart. No pip install, no waiting.
 
-### Why You'll Love It
+---
 
-**It Just Works** - Smart detection finds your prompts automatically. Works with CLIPTextEncode, SDXL encoders, and most custom prompt nodes.
-
-**Version History** - Accidentally overwrote your masterpiece? Just load the previous version. It's all there.
-
-**Quick-Access Sidebar** - Click the book icon for instant access to all your templates. Collapsible sections, one-click loading, version history at your fingertips.
-
-**Set It and Forget It** - Drop the two Alexandria nodes into your workflow (Control + Save). It auto-saves every time you generate - only when something changes.
-
-**Zero Dependencies** - Just clone and go. No pip installs, no waiting. Pure Python standard library.
-
-### What It Looks Like
-
-The sidebar shows your templates with full version history:
+**What it looks like:**
 
 ```
 ▼ Scene One              v7
@@ -42,18 +34,16 @@ The sidebar shows your templates with full version history:
 ▶ Portrait Mode          v12
 ```
 
-Click "Load" and your prompts are instantly restored to their original nodes.
-
-### Why "Alexandria"?
-
-The ancient Library of Alexandria sought to preserve all human knowledge. Your prompts are spells that conjure beauty from nothing - they deserve to be saved too.
+Click Load, prompts go back to their original nodes. Done.
 
 ---
 
-**GitHub:** https://github.com/XelaNull/Prompts-Of-Alexandria
+**Why "Alexandria"?** The ancient library tried to save all human knowledge. Your prompts are spells that conjure beauty from nothing - figured they deserve saving too.
+
+**Link:** https://github.com/XelaNull/Prompts-Of-Alexandria
 
 ---
 
-*Built entirely with Claude Code (Opus model) and Samantha, a custom AI agent persona providing code review and oversight. Not a single line written by human hands. Code reviewed by a human, built entirely by AI.*
+*Built with Claude Code (Opus) + Samantha, a custom AI persona handling code review. Not a single line written by human hands - just reviewed by one.*
 
-Questions? Issues? Hit us up in the comments or on GitHub!
+Happy to answer questions!
