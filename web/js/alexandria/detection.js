@@ -538,16 +538,63 @@ export function detectAllPrompts() {
 }
 
 /**
+ * Check if a value looks like a prompt (for precise mode filtering)
+ * @param {*} value - Widget value to check
+ * @returns {boolean} True if value appears to be a prompt
+ */
+function looksLikePrompt(value) {
+  if (typeof value !== 'string') return false;
+  const str = value.trim();
+
+  // Too short to be a prompt
+  if (str.length < 10) return false;
+
+  // Contains comma-separated tags (common in prompts)
+  const commaCount = (str.match(/,/g) || []).length;
+  if (commaCount >= 2) return true;
+
+  // Contains common prompt keywords
+  const promptKeywords = /\b(masterpiece|best quality|high quality|detailed|beautiful|8k|4k|uhd|realistic|anime|portrait|landscape|photo|art|style|lighting|background|foreground|scene|character|person|woman|man|girl|boy|face|eyes|hair|dress|outfit|wearing)\b/i;
+  if (promptKeywords.test(str)) return true;
+
+  // Contains parentheses weighting syntax like (word:1.2)
+  if (/\([^)]+:\d+\.?\d*\)/.test(str)) return true;
+
+  // Contains angle bracket syntax like <lora:name>
+  if (/<[^>]+>/.test(str)) return true;
+
+  // Has multiple words (at least 3) - prompts are usually descriptive
+  const wordCount = str.split(/\s+/).length;
+  if (wordCount >= 5) return true;
+
+  return false;
+}
+
+/**
  * Get detected prompts as an array, sorted by confidence
  * Excludes manually excluded widgets
+ * Applies precision filter based on detection mode setting
  *
  * @returns {Array} Array of detection results
  */
 export function getDetectedPrompts() {
   const results = detectAllPrompts();
-  return Array.from(results.values())
-    .filter(r => !r.excluded)
-    .sort((a, b) => b.confidence - a.confidence);
+  const mode = Storage.getDetectionMode();
+
+  let filtered = Array.from(results.values()).filter(r => !r.excluded);
+
+  // In precise mode, apply stricter filtering
+  if (mode === 'precise') {
+    filtered = filtered.filter(r => {
+      // Always include high-confidence detections (known nodes, link tracing)
+      if (r.confidence >= 85) return true;
+
+      // For lower confidence, check if the value looks like a prompt
+      return looksLikePrompt(r.value);
+    });
+  }
+
+  return filtered.sort((a, b) => b.confidence - a.confidence);
 }
 
 /**
@@ -728,11 +775,11 @@ export function getWorkflowIdentity() {
  */
 function getWorkflowFilename() {
   try {
-    // Debug: Log all detection sources
-    console.log('Alexandria DEBUG - document.title:', document.title);
-    console.log('Alexandria DEBUG - app.workflowManager?.activeWorkflow:', app.workflowManager?.activeWorkflow);
-    console.log('Alexandria DEBUG - app.workflow:', app.workflow);
-    console.log('Alexandria DEBUG - localStorage Comfy.Workflow:', localStorage.getItem('Comfy.Workflow'));
+    // Method 0: Check our tracked workflow name (most reliable - set by save/load hooks)
+    const trackedName = Storage.getTrackedWorkflowName();
+    if (trackedName) {
+      return trackedName;
+    }
 
     // Method 1: Check document title (most reliable across versions)
     // ComfyUI shows workflow name in tab: "WorkflowName - ComfyUI" or "ComfyUI - WorkflowName"
@@ -742,12 +789,10 @@ function getWorkflowFilename() {
       // Patterns: "Name - ComfyUI", "ComfyUI - Name", "Name.json - ComfyUI"
       let match = docTitle.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
       if (match && match[1] && match[1].trim() !== '') {
-        console.log('Alexandria DEBUG - Found via title pattern 1:', match[1].trim());
         return match[1].trim();
       }
       match = docTitle.match(/^ComfyUI\s*[-–—]\s*(.+?)$/i);
       if (match && match[1] && match[1].trim() !== '') {
-        console.log('Alexandria DEBUG - Found via title pattern 2:', match[1].trim());
         return match[1].trim();
       }
     }

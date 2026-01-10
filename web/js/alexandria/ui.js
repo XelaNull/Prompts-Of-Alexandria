@@ -178,6 +178,84 @@ function makeDraggable(panelEl) {
  */
 export function init() {
   loadSelections();
+  setupWorkflowHooks();
+}
+
+/**
+ * Setup hooks to track workflow save/load events
+ * This gives us reliable workflow name detection
+ */
+function setupWorkflowHooks() {
+  // Hook into the app's loadGraphData to capture workflow loads
+  if (app.loadGraphData) {
+    const originalLoad = app.loadGraphData.bind(app);
+    app.loadGraphData = async function(graphData, clean, ...args) {
+      const result = await originalLoad(graphData, clean, ...args);
+
+      // Try to extract workflow name from various sources after load
+      setTimeout(() => {
+        let name = null;
+
+        // Check if graph has a filename set
+        if (app.graph?.filename) {
+          name = app.graph.filename;
+        }
+        // Check workflowManager
+        else if (app.workflowManager?.activeWorkflow?.name) {
+          name = app.workflowManager.activeWorkflow.name;
+        }
+        else if (app.workflowManager?.activeWorkflow?.path) {
+          const path = app.workflowManager.activeWorkflow.path;
+          name = path.split('/').pop().split('\\').pop();
+        }
+        // Check document title
+        else if (document.title && document.title !== 'ComfyUI') {
+          const match = document.title.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
+          if (match) name = match[1].trim();
+        }
+
+        if (name) {
+          // Normalize: remove .json extension
+          name = name.replace(/\.json$/i, '').trim();
+          Storage.setTrackedWorkflowName(name);
+          console.log('Alexandria: Tracked workflow name from load:', name);
+        }
+      }, 100);
+
+      return result;
+    };
+  }
+
+  // Monitor for file input changes (workflow loaded from file picker)
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.type === 'file' && e.target.files && e.target.files[0]) {
+      const filename = e.target.files[0].name;
+      if (filename.endsWith('.json') || filename.endsWith('.png')) {
+        const name = filename.replace(/\.(json|png)$/i, '').trim();
+        Storage.setTrackedWorkflowName(name);
+        console.log('Alexandria: Tracked workflow name from file input:', name);
+      }
+    }
+  }, true);
+
+  // Monitor Ctrl+S / Cmd+S for save events to update tracked name
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      // After save, check if document title updated
+      setTimeout(() => {
+        if (document.title && document.title !== 'ComfyUI') {
+          const match = document.title.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
+          if (match) {
+            const name = match[1].trim().replace(/\.json$/i, '');
+            Storage.setTrackedWorkflowName(name);
+            console.log('Alexandria: Tracked workflow name from save:', name);
+          }
+        }
+      }, 500);
+    }
+  });
+
+  console.log('Alexandria: Workflow tracking hooks installed');
 }
 
 /**
@@ -447,6 +525,7 @@ function renderPanelContent(panelEl) {
     panelEl.className = 'alexandria-panel alexandria-panel-wide';
     const manualSelections = Storage.getManualSelections();
     const overrideCount = Object.keys(manualSelections).length;
+    const detectionMode = Storage.getDetectionMode();
 
     panelEl.innerHTML = `
       <div class="alexandria-header">
@@ -468,6 +547,11 @@ function renderPanelContent(panelEl) {
           <button class="alexandria-filter-btn ${filterType === 'all' ? 'active' : ''}" data-filter="all">All Widgets</button>
           <button class="alexandria-filter-btn ${filterType === 'detected' ? 'active' : ''}" data-filter="detected">Detected Only</button>
           <button class="alexandria-filter-btn ${filterType === 'overrides' ? 'active' : ''}" data-filter="overrides">Overrides Only</button>
+        </div>
+        <div class="alexandria-detection-mode">
+          <span class="alexandria-detection-mode-label">Detection:</span>
+          <button class="alexandria-mode-btn ${detectionMode === 'lazy' ? 'active' : ''}" data-mode="lazy" title="Include more widgets, even with lower confidence">Lazy</button>
+          <button class="alexandria-mode-btn ${detectionMode === 'precise' ? 'active' : ''}" data-mode="precise" title="Only include widgets that look like prompts">Precise</button>
         </div>
       </div>
       <div class="alexandria-content"></div>
@@ -608,6 +692,19 @@ function attachConfigureListeners(panelEl) {
       btn.classList.add('active');
       filterType = btn.dataset.filter;
       renderConfigureContent(panelEl);
+    };
+  });
+
+  // Detection mode toggle
+  panelEl.querySelectorAll('.alexandria-mode-btn').forEach(btn => {
+    btn.onclick = () => {
+      panelEl.querySelectorAll('.alexandria-mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Storage.setDetectionMode(btn.dataset.mode);
+      // Reload selections with new detection mode
+      loadSelections();
+      renderConfigureContent(panelEl);
+      showToast(`Detection mode: ${btn.dataset.mode === 'lazy' ? 'Lazy (more widgets)' : 'Precise (prompts only)'}`);
     };
   });
 

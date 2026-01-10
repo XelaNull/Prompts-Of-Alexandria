@@ -591,6 +591,41 @@ const CSS = `
     color: white;
   }
 
+  /* ============ Detection Mode Toggle ============ */
+  .alexandria-detection-mode {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding-left: 16px;
+    border-left: 1px solid var(--alexandria-border);
+  }
+  .alexandria-detection-mode-label {
+    font-size: 12px;
+    color: var(--alexandria-text-muted);
+    font-weight: 500;
+  }
+  .alexandria-mode-btn {
+    padding: 6px 12px;
+    background: var(--alexandria-bg);
+    border: 1px solid var(--alexandria-border);
+    border-radius: 4px;
+    color: var(--alexandria-text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .alexandria-mode-btn:hover {
+    border-color: var(--alexandria-accent);
+    color: var(--alexandria-text);
+  }
+  .alexandria-mode-btn.active {
+    background: var(--alexandria-info);
+    border-color: var(--alexandria-info);
+    color: white;
+  }
+
   /* ============ Content ============ */
   .alexandria-content {
     flex: 1;
@@ -1401,40 +1436,44 @@ const CSS = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background: var(--alexandria-bg-tertiary);
-    border: 1px solid var(--alexandria-border);
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(96, 165, 250, 0.05) 100%);
+    border: 1px solid rgba(96, 165, 250, 0.4);
     border-radius: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    margin-top: 12px;
     gap: 12px;
   }
   .alexandria-version-current {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
   }
   .alexandria-version-label {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
+    color: var(--alexandria-info);
   }
   .alexandria-version-time {
     font-size: 11px;
-    color: var(--alexandria-text-muted);
+    color: var(--alexandria-text);
+    font-weight: 500;
   }
   .alexandria-version-toggle {
-    background: transparent;
-    border: 1px solid var(--alexandria-border);
+    background: rgba(96, 165, 250, 0.2);
+    border: 1px solid var(--alexandria-info);
     border-radius: 4px;
-    padding: 4px 10px;
+    padding: 5px 12px;
     font-size: 11px;
-    color: var(--alexandria-text-muted);
+    color: var(--alexandria-info);
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
   }
   .alexandria-version-toggle:hover {
-    border-color: var(--alexandria-accent);
-    color: var(--alexandria-text);
+    background: var(--alexandria-info);
+    color: white;
   }
   .alexandria-btn-link {
     background: transparent;
@@ -1507,12 +1546,13 @@ const CSS = `
 
   /* ============ Diff View ============ */
   .alexandria-diff-toggle {
-    background: var(--alexandria-bg);
-    border: 1px solid var(--alexandria-border);
+    background: rgba(233, 69, 96, 0.15);
+    border: 1px solid var(--alexandria-accent);
     border-radius: 4px;
-    padding: 4px 10px;
+    padding: 5px 12px;
     font-size: 11px;
-    color: var(--alexandria-text-muted);
+    font-weight: 500;
+    color: var(--alexandria-accent);
     cursor: pointer;
     transition: all 0.15s;
   }

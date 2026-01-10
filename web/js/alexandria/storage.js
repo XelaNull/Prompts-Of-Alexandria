@@ -20,7 +20,11 @@ const DEFAULT_SETTINGS = {
     maxAgeDays: 30,
   },
   debug: false,
+  detectionMode: 'lazy', // 'lazy' = include more widgets, 'precise' = only high-confidence prompts
 };
+
+// Storage key for tracked workflow name (hooked from save/load events)
+const WORKFLOW_NAME_KEY = 'alexandria_current_workflow';
 
 /**
  * Generate a UUID v4
@@ -131,6 +135,54 @@ export function saveSettings(settings) {
 
 export function isDebugEnabled() {
   return getSettings().debug === true;
+}
+
+/**
+ * Get current detection mode
+ * @returns {string} 'lazy' or 'precise'
+ */
+export function getDetectionMode() {
+  return getSettings().detectionMode || 'lazy';
+}
+
+/**
+ * Set detection mode
+ * @param {string} mode - 'lazy' or 'precise'
+ */
+export function setDetectionMode(mode) {
+  const settings = getSettings();
+  settings.detectionMode = mode;
+  saveSettings(settings);
+}
+
+// ============ Tracked Workflow Name ============
+
+/**
+ * Get the tracked workflow name (set by save/load hooks)
+ * @returns {string|null} Workflow name or null
+ */
+export function getTrackedWorkflowName() {
+  try {
+    return localStorage.getItem(WORKFLOW_NAME_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Set the tracked workflow name (called by save/load hooks)
+ * @param {string} name - Workflow name
+ */
+export function setTrackedWorkflowName(name) {
+  try {
+    if (name) {
+      localStorage.setItem(WORKFLOW_NAME_KEY, name);
+    } else {
+      localStorage.removeItem(WORKFLOW_NAME_KEY);
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not save tracked workflow name', e);
+  }
 }
 
 // ============ Manual Selections ============
