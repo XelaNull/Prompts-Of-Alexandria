@@ -22,6 +22,9 @@ const WORKFLOW_NAME_KEY = 'alexandria_current_workflow';
 // Storage key for current storage directory
 const STORAGE_DIR_KEY = 'alexandria_storage_directory';
 
+// Template order key for localStorage
+const TEMPLATE_ORDER_KEY = 'alexandria_template_order';
+
 // Cache for current storage directory from backend
 let _currentStorageDir = null;
 
@@ -605,7 +608,7 @@ export function getTemplateByName(name) {
  * @returns {Array} Array of template IDs in custom order
  */
 export function getTemplateOrder() {
-  return safeGet(STORAGE_KEYS.TEMPLATE_ORDER, []);
+  return safeGet(TEMPLATE_ORDER_KEY, []);
 }
 
 /**
@@ -613,7 +616,7 @@ export function getTemplateOrder() {
  * @param {Array} order - Array of template IDs in desired order
  */
 export function saveTemplateOrder(order) {
-  return safeSet(STORAGE_KEYS.TEMPLATE_ORDER, order);
+  return safeSet(TEMPLATE_ORDER_KEY, order);
 }
 
 /**
@@ -1248,4 +1251,4 @@ export async function refreshWorkflowContext(workflowId, workflowName) {
 }
 
 // Re-export utilities that other modules may need
-export { computeEntriesHash, generateId, getStableWidgetKey };
+export { computeEntriesHash, generateId };

@@ -5,7 +5,9 @@
  * @module alexandria/api
  */
 
-const { app } = window.comfyAPI?.app ?? await import("../../../../scripts/app.js");
+// Lazy app access - no top-level await for safe direct loading
+const getApp = () => window.comfyAPI?.app?.app;
+const app = getApp(); // May be undefined if loaded directly
 import * as Storage from "./storage.js";
 import * as Detection from "./detection.js";
 import * as UI from "./ui.js";
@@ -20,6 +22,7 @@ import * as UI from "./ui.js";
  * @returns {Object|null} Matching node or null
  */
 function findNode(entry) {
+  const app = getApp();
   const nodes = app.graph?._nodes;
   if (!nodes) return null;
 
@@ -61,6 +64,7 @@ function isValidTemplate(template) {
  * @returns {Object} Results with restored, skipped, and failed arrays
  */
 function restoreTemplate(template) {
+  const app = getApp();
   // Input validation
   if (!isValidTemplate(template)) {
     console.error('Alexandria: restoreTemplate called with invalid template object');

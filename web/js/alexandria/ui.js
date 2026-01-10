@@ -5,7 +5,9 @@
  * @module alexandria/ui
  */
 
-const { app } = window.comfyAPI?.app ?? await import("../../../../scripts/app.js");
+// Lazy app access - no top-level await for safe direct loading
+const getApp = () => window.comfyAPI?.app?.app;
+const app = getApp(); // May be undefined if loaded directly
 import * as Storage from "./storage.js";
 import * as Detection from "./detection.js";
 
@@ -188,6 +190,7 @@ export async function init() {
  * This gives us reliable workflow name detection
  */
 function setupWorkflowHooks() {
+  const app = getApp();
   // Hook into the app's loadGraphData to capture workflow loads
   if (app.loadGraphData) {
     const originalLoad = app.loadGraphData.bind(app);
@@ -1260,6 +1263,7 @@ function attachPreviewListeners(panelEl) {
  * Attach listeners for node list in create mode
  */
 function attachNodeListListeners(panelEl) {
+  const app = getApp();
   // Collapse all link
   const collapseLink = panelEl.querySelector('.alexandria-collapse-link');
   if (collapseLink) {
@@ -1683,6 +1687,7 @@ function attachDragDropListeners(containerEl = panel) {
  * @returns {Object|null} Matching node data or null
  */
 function findMatchingNode(entry) {
+  const app = getApp();
   if (!app.graph?._nodes) return null;
 
   // Strategy 1: Match by node ID (best match if workflow unchanged)
@@ -1717,6 +1722,7 @@ function findMatchingNode(entry) {
  * Find canvas group for a node (mirrors detection.js logic)
  */
 function findMatchingNodeCanvasGroup(node) {
+  const app = getApp();
   if (!app.graph?._groups || !node.pos) return null;
 
   const nodeX = node.pos[0];
@@ -1753,6 +1759,7 @@ function findMatchingNodeCanvasGroup(node) {
  * @returns {Object} Diff result with status and values
  */
 function compareEntryToWorkflow(entry) {
+  const app = getApp();
   const match = findMatchingNode(entry);
 
   if (!match) {
@@ -2437,6 +2444,7 @@ function renderWidget(node, widget) {
  * Attach event listeners to content area
  */
 function attachContentListeners() {
+  const app = getApp();
   if (!panel) return;
 
   // Collapse/Expand All link (for browse tab)
@@ -2702,6 +2710,7 @@ function loadSelectedTemplate() {
  * Save selected widgets as a template
  */
 function saveAsTemplate() {
+  const app = getApp();
   // Get workflow identity for linking template to workflow
   const workflowIdentity = Detection.getWorkflowIdentity();
 
@@ -3303,6 +3312,7 @@ function attachEmbeddedTemplateListeners(panelEl) {
  * @param {HTMLElement} panelEl - Panel element
  */
 function attachEmbeddedContentListeners(panelEl) {
+  const app = getApp();
   // Collapse/Expand All link
   const collapseLink = panelEl.querySelector('.alexandria-collapse-link');
   if (collapseLink) {

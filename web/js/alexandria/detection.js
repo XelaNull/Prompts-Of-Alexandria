@@ -14,7 +14,9 @@
  * @module alexandria/detection
  */
 
-const { app } = window.comfyAPI?.app ?? await import("../../../../scripts/app.js");
+// Lazy app access - no top-level await for safe direct loading
+const getApp = () => window.comfyAPI?.app?.app;
+const app = getApp(); // May be undefined if loaded directly
 import * as Storage from "./storage.js";
 
 // ============ Configuration ============
@@ -298,6 +300,7 @@ export function hasConditioningPassthrough(node) {
  * @returns {Object|null} Link object or null
  */
 function getInputLink(node, inputName) {
+  const app = getApp();
   if (!node?.inputs) return null;
   const input = node.inputs.find(i => i.name === inputName);
   if (!input || input.link == null) return null; // Use == to catch both null and undefined
@@ -310,6 +313,7 @@ function getInputLink(node, inputName) {
  * @returns {Object|null} Node or null
  */
 function getNodeById(id) {
+  const app = getApp();
   return app.graph?._nodes?.find(n => n.id === id) || null;
 }
 
@@ -341,6 +345,7 @@ export function getNodeDisplayName(node) {
  * @returns {Map} Map of "nodeId:widgetName" -> detection result
  */
 function detectByBackwardLinkTracing() {
+  const app = getApp();
   const results = new Map();
   if (!app.graph?._nodes) return results;
 
@@ -411,6 +416,7 @@ function _traceConditioningChain(node, inputName, results, visited) {
  * @returns {Map} Detection results
  */
 function detectByKnownNodeType() {
+  const app = getApp();
   const results = new Map();
   if (!app.graph?._nodes) return results;
 
@@ -444,6 +450,7 @@ function detectByKnownNodeType() {
  * @returns {Map} Detection results
  */
 function detectByOutputType() {
+  const app = getApp();
   const results = new Map();
   if (!app.graph?._nodes) return results;
 
@@ -474,6 +481,7 @@ function detectByOutputType() {
  * @returns {Map} Detection results
  */
 function detectByInputPattern() {
+  const app = getApp();
   const results = new Map();
   if (!app.graph?._nodes) return results;
 
@@ -504,6 +512,7 @@ function detectByInputPattern() {
  * @returns {Map} Detection results
  */
 function detectByWidgetName() {
+  const app = getApp();
   const results = new Map();
   if (!app.graph?._nodes) return results;
 
@@ -548,6 +557,7 @@ function detectByWidgetName() {
  * @returns {Map} Detection results
  */
 function detectByWidgetType() {
+  const app = getApp();
   const results = new Map();
   if (!app.graph?._nodes) return results;
 
@@ -588,6 +598,7 @@ function detectByWidgetType() {
  * @returns {Map} Modified results
  */
 function applyManualOverrides(results) {
+  const app = getApp();
   const manualSelections = Storage.getManualSelections();
   if (!app.graph?._nodes) return results;
 
@@ -940,6 +951,7 @@ export function getDetectedPrompts() {
  * @returns {Object|null} Group object or null if not in a group
  */
 function findNodeGroup(node) {
+  const app = getApp();
   if (!app.graph?._groups || !node.pos) return null;
 
   const nodeX = node.pos[0];
@@ -986,6 +998,7 @@ function findNodeGroup(node) {
  * @returns {Array} Array of node data with widgets
  */
 export function getAllWorkflowWidgets() {
+  const app = getApp();
   if (!app.graph?._nodes) return [];
 
   // Use getDetectedPrompts() to get mode-filtered results
@@ -1209,6 +1222,7 @@ function getWorkflowFilename() {
  * @returns {Object} { hash: string, name: string }
  */
 function generateWorkflowSignature() {
+  const app = getApp();
   if (!app.graph?._nodes) {
     return { hash: 'empty', name: 'Empty Workflow' };
   }
