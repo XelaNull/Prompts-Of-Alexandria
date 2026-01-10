@@ -4,18 +4,18 @@
 
 ---
 
-So I got tired of losing prompts. You know the feeling - you spend 20 minutes getting that prompt *just right*, tweak one thing, queue another gen... and accidentally paste over it. Gone forever.
+So I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files, trying to remember which version had that perfect lighting setup. It's exhausting.
 
-Or worse - you're juggling 15 different scene prompts and switching between them means digging through notepad files like a caveman.
+And yeah, occasionally losing a prompt when you accidentally paste over it doesn't help either.
 
-**Prompts of Alexandria** fixes this. It auto-detects your prompt nodes, saves them as templates with full version history, and lets you restore any version with one click from a sidebar panel.
+**Prompts of Alexandria** fixes this. It auto-detects your prompt nodes, saves them as templates with full version history, and lets you restore any version with one click from a sidebar panel. No more notepad files. No more "wait which prompt was that?"
 
 ---
 
 **The good stuff:**
 
 - Smart detection that actually works - finds your prompts automatically across CLIPTextEncode, SDXL, custom nodes, whatever
-- Full version history - overwrote something? just load the previous version
+- Full version history - every save tracked, load any previous version instantly
 - Sidebar quick-access - click the book icon, see all your templates, one-click load
 - Two-node auto-save - drop Control + Save nodes in your workflow, it saves on every gen (only when things actually change)
 - Zero dependencies - just clone to custom_nodes and restart. No pip install, no waiting.
