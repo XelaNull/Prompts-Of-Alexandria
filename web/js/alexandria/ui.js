@@ -1021,6 +1021,9 @@ function attachTemplateListListeners(panelEl) {
       }
     };
   });
+
+  // Drag and drop reordering
+  attachDragDropListeners(panelEl);
 }
 
 /**
@@ -1455,14 +1458,15 @@ function attachTemplateListeners() {
 
 /**
  * Attach drag and drop event listeners for template reordering
+ * @param {HTMLElement} containerEl - The container element (panel or panelEl)
  */
-function attachDragDropListeners() {
-  if (!panel) return;
+function attachDragDropListeners(containerEl = panel) {
+  if (!containerEl) return;
 
   let draggedItem = null;
   let draggedId = null;
 
-  panel.querySelectorAll('.alexandria-template-item[draggable="true"]').forEach(item => {
+  containerEl.querySelectorAll('.alexandria-template-item[draggable="true"]').forEach(item => {
     // Drag start
     item.ondragstart = (e) => {
       draggedItem = item;
@@ -1487,8 +1491,8 @@ function attachDragDropListeners() {
       draggedId = null;
 
       // Remove all drop indicators
-      panel.querySelectorAll('.alexandria-drop-indicator').forEach(el => el.remove());
-      panel.querySelectorAll('.alexandria-drag-over').forEach(el => el.classList.remove('alexandria-drag-over'));
+      containerEl.querySelectorAll('.alexandria-drop-indicator').forEach(el => el.remove());
+      containerEl.querySelectorAll('.alexandria-drag-over').forEach(el => el.classList.remove('alexandria-drag-over'));
     };
 
     // Drag over
