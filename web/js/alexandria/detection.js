@@ -679,17 +679,19 @@ export function createTemplateEntries(detectedPrompts = null) {
 // ============ Workflow Identity ============
 
 /**
- * Check if the current workflow has been saved (has a filename)
- * @returns {boolean} True if workflow is saved
+ * Check if we can identify the current workflow
+ * Always returns true - we can always generate a signature
+ * @returns {boolean} True (always)
  */
 export function isWorkflowSaved() {
-  return getWorkflowFilename() !== null;
+  // Always allow saves - we can identify workflow by filename or generated signature
+  return true;
 }
 
 /**
  * Get a unique identifier for the current workflow.
  * Tries multiple methods in order of preference:
- * 1. Workflow filename from ComfyUI (if saved)
+ * 1. Workflow filename from ComfyUI (if available)
  * 2. Generated signature from node structure
  *
  * @returns {Object} { id: string, name: string, source: string, isSaved: boolean }
@@ -707,13 +709,14 @@ export function getWorkflowIdentity() {
     };
   }
 
-  // Method 2: Generate from node structure (workflow not saved)
+  // Method 2: Generate from node structure
+  // This creates a stable ID based on the workflow's node composition
   const signature = generateWorkflowSignature();
   return {
     id: signature.hash,
     name: signature.name,
     source: 'generated',
-    isSaved: false
+    isSaved: true  // Always allow saves with generated identity
   };
 }
 

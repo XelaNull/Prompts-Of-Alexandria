@@ -59,13 +59,8 @@ export function handleNodeSave(templateName) {
   saveInProgress = true;
 
   try {
-    // Check if workflow is saved first
+    // Get workflow identity for linking template to workflow
     const workflowIdentity = Detection.getWorkflowIdentity();
-    if (!workflowIdentity.isSaved) {
-      console.error('Alexandria: Cannot save template - workflow not saved. Please save your workflow first (Ctrl+S).');
-      UI.showToast?.('Please save your workflow first (Ctrl+S) before saving templates', 'error');
-      return;
-    }
 
     const entries = Detection.createTemplateEntries();
 

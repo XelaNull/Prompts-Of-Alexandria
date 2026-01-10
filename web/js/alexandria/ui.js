@@ -2423,12 +2423,8 @@ function loadSelectedTemplate() {
  * Save selected widgets as a template
  */
 function saveAsTemplate() {
-  // Check if workflow is saved first
+  // Get workflow identity for linking template to workflow
   const workflowIdentity = Detection.getWorkflowIdentity();
-  if (!workflowIdentity.isSaved) {
-    showToast('Please save your workflow first (Ctrl+S) before saving templates', 'error');
-    return;
-  }
 
   const selectedEntries = [];
 
