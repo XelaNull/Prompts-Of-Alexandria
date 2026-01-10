@@ -728,6 +728,12 @@ export function getWorkflowIdentity() {
  */
 function getWorkflowFilename() {
   try {
+    // Debug: Log all detection sources
+    console.log('Alexandria DEBUG - document.title:', document.title);
+    console.log('Alexandria DEBUG - app.workflowManager?.activeWorkflow:', app.workflowManager?.activeWorkflow);
+    console.log('Alexandria DEBUG - app.workflow:', app.workflow);
+    console.log('Alexandria DEBUG - localStorage Comfy.Workflow:', localStorage.getItem('Comfy.Workflow'));
+
     // Method 1: Check document title (most reliable across versions)
     // ComfyUI shows workflow name in tab: "WorkflowName - ComfyUI" or "ComfyUI - WorkflowName"
     const docTitle = document.title;
@@ -736,10 +742,12 @@ function getWorkflowFilename() {
       // Patterns: "Name - ComfyUI", "ComfyUI - Name", "Name.json - ComfyUI"
       let match = docTitle.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
       if (match && match[1] && match[1].trim() !== '') {
+        console.log('Alexandria DEBUG - Found via title pattern 1:', match[1].trim());
         return match[1].trim();
       }
       match = docTitle.match(/^ComfyUI\s*[-–—]\s*(.+?)$/i);
       if (match && match[1] && match[1].trim() !== '') {
+        console.log('Alexandria DEBUG - Found via title pattern 2:', match[1].trim());
         return match[1].trim();
       }
     }
