@@ -5,7 +5,7 @@
  * @module alexandria/api
  */
 
-import { app } from "../../../../scripts/app.js";
+const { app } = window.comfyAPI?.app ?? await import("../../../../scripts/app.js");
 import * as Storage from "./storage.js";
 import * as Detection from "./detection.js";
 import * as UI from "./ui.js";

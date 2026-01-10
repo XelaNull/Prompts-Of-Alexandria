@@ -4,7 +4,7 @@
 
 ---
 
-I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files like a caveman, trying to remember which version had that perfect lighting setup.
+I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files like a caveman, trying to remember which version had that perfect setup.
 
 So I built **Prompts of Alexandria**.
 
@@ -43,10 +43,8 @@ Click Load, prompts go back to their original nodes. Done.
 
 **Why "Alexandria"?** The ancient library tried to save all human knowledge. Prompts are spells that conjure beauty from nothing - figured they deserve saving too.
 
-**Link:** https://github.com/XelaNull/Prompts-Of-Alexandria
+https://github.com/XelaNull/Prompts-Of-Alexandria
 
----
-
-*Built with Claude Code (Opus) + Samantha, a custom AI persona handling code review. Not a single line written by human hands - just reviewed by one.*
+I built it with Claude Code (Opus 4.5) + Samantha, a custom AI persona handling code review. Not a single line written by human hands - just reviewed by one.*
 
 Happy to answer questions!

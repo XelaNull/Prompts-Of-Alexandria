@@ -14,7 +14,7 @@
  * @module alexandria/detection
  */
 
-import { app } from "../../../../scripts/app.js";
+const { app } = window.comfyAPI?.app ?? await import("../../../../scripts/app.js");
 import * as Storage from "./storage.js";
 
 // ============ Configuration ============
