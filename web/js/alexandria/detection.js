@@ -679,13 +679,12 @@ export function createTemplateEntries(detectedPrompts = null) {
 // ============ Workflow Identity ============
 
 /**
- * Check if we can identify the current workflow
- * Always returns true - we can always generate a signature
- * @returns {boolean} True (always)
+ * Check if the current workflow has been saved (has an identifiable name)
+ * @returns {boolean} True if workflow appears to be saved with a name
  */
 export function isWorkflowSaved() {
-  // Always allow saves - we can identify workflow by filename or generated signature
-  return true;
+  const filename = getWorkflowFilename();
+  return filename !== null;
 }
 
 /**
@@ -709,43 +708,88 @@ export function getWorkflowIdentity() {
     };
   }
 
-  // Method 2: Generate from node structure
-  // This creates a stable ID based on the workflow's node composition
+  // Method 2: Generate from node structure (workflow not saved/named)
   const signature = generateWorkflowSignature();
   return {
     id: signature.hash,
     name: signature.name,
     source: 'generated',
-    isSaved: true  // Always allow saves with generated identity
+    isSaved: false  // Workflow has no detectable name
   };
 }
 
 /**
  * Try to get the workflow filename from ComfyUI
+ * Uses multiple detection methods for different ComfyUI versions
  * @returns {string|null} Filename or null if not saved/available
  */
 function getWorkflowFilename() {
   try {
-    // ComfyUI stores filename in different places depending on version
-    // Try common locations
+    // Method 1: Check document title (most reliable across versions)
+    // ComfyUI shows workflow name in tab: "WorkflowName - ComfyUI" or "ComfyUI - WorkflowName"
+    const docTitle = document.title;
+    if (docTitle && docTitle !== 'ComfyUI') {
+      // Extract workflow name from title
+      // Patterns: "Name - ComfyUI", "ComfyUI - Name", "Name.json - ComfyUI"
+      let match = docTitle.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
+      if (match && match[1] && match[1].trim() !== '') {
+        return match[1].trim();
+      }
+      match = docTitle.match(/^ComfyUI\s*[-–—]\s*(.+?)$/i);
+      if (match && match[1] && match[1].trim() !== '') {
+        return match[1].trim();
+      }
+    }
+
+    // Method 2: Check workflowManager (newer ComfyUI versions)
+    if (app.workflowManager?.activeWorkflow?.name) {
+      return app.workflowManager.activeWorkflow.name;
+    }
+    if (app.workflowManager?.activeWorkflow?.path) {
+      // Extract name from path
+      const path = app.workflowManager.activeWorkflow.path;
+      const name = path.split('/').pop().split('\\').pop();
+      if (name) return name;
+    }
+
+    // Method 3: Check app.workflow (some versions)
+    if (app.workflow?.name) {
+      return app.workflow.name;
+    }
+
+    // Method 4: Check graph properties
     if (app.graphDialog?.filename) {
       return app.graphDialog.filename;
     }
     if (app.graph?.filename) {
       return app.graph.filename;
     }
-    // Check for title in graph (sometimes set from filename)
-    if (app.graph?.title && app.graph.title !== 'Workflow') {
+
+    // Method 5: Check for title in graph (sometimes set from filename)
+    // Exclude default "Workflow" title as that indicates unsaved
+    if (app.graph?.title &&
+        app.graph.title !== 'Workflow' &&
+        app.graph.title !== 'Untitled' &&
+        app.graph.title.trim() !== '') {
       return app.graph.title;
     }
-    // Check localStorage for last loaded workflow
-    const lastWorkflow = localStorage.getItem('Comfy.PreviousWorkflow');
-    if (lastWorkflow) {
+
+    // Method 6: Check Comfy.Workflow localStorage (set when loading workflows)
+    const workflowPath = localStorage.getItem('Comfy.Workflow');
+    if (workflowPath && workflowPath !== 'null' && workflowPath !== '') {
       try {
-        const data = JSON.parse(lastWorkflow);
-        if (data.workflow?.name) return data.workflow.name;
-      } catch (e) { /* ignore parse errors */ }
+        // Might be a path or just a name
+        const parsed = JSON.parse(workflowPath);
+        if (typeof parsed === 'string') return parsed;
+        if (parsed?.name) return parsed.name;
+      } catch {
+        // Not JSON, might be raw path/name
+        if (typeof workflowPath === 'string' && workflowPath.length > 0) {
+          return workflowPath;
+        }
+      }
     }
+
   } catch (e) {
     console.warn('Alexandria: Could not get workflow filename', e);
   }

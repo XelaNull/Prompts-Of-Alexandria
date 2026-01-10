@@ -2426,6 +2426,12 @@ function saveAsTemplate() {
   // Get workflow identity for linking template to workflow
   const workflowIdentity = Detection.getWorkflowIdentity();
 
+  // Require workflow to be saved so we can link templates properly
+  if (!workflowIdentity.isSaved) {
+    showToast('Please save your workflow first (Ctrl+S) before saving templates', 'error');
+    return;
+  }
+
   const selectedEntries = [];
 
   for (const [key, selected] of selectedWidgets) {

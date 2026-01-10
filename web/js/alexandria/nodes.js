@@ -62,6 +62,13 @@ export function handleNodeSave(templateName) {
     // Get workflow identity for linking template to workflow
     const workflowIdentity = Detection.getWorkflowIdentity();
 
+    // Require workflow to be saved so we can link templates properly
+    if (!workflowIdentity.isSaved) {
+      console.error('Alexandria: Cannot save template - workflow not saved');
+      UI.showToast?.('Please save your workflow first (Ctrl+S) before saving templates', 'error');
+      return;
+    }
+
     const entries = Detection.createTemplateEntries();
 
     if (!entries || entries.length === 0) {
