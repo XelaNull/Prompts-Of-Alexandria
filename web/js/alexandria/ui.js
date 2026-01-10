@@ -606,6 +606,12 @@ function renderPanelContent(panelEl) {
  */
 function attachLandingListeners(panelEl) {
   panelEl.querySelector('[data-action="go-create"]').onclick = () => {
+    // Check if workflow is saved first - don't show panel with warning banner
+    const workflowIdentity = Detection.getWorkflowIdentity();
+    if (!workflowIdentity.isSaved) {
+      showToast('Please save your workflow first (Ctrl+S) before saving templates', 'error');
+      return;
+    }
     uiMode = 'create';
     renderPanelContent(panelEl);
   };
@@ -3171,6 +3177,12 @@ export function createEmbeddedPanel() {
 
   // Action buttons
   panelEl.querySelector('[data-action="new-template"]').onclick = () => {
+    // Check if workflow is saved first
+    const workflowIdentity = Detection.getWorkflowIdentity();
+    if (!workflowIdentity.isSaved) {
+      showToast('Please save your workflow first (Ctrl+S) before saving templates', 'error');
+      return;
+    }
     activeTab = 'browse';
     updateEmbeddedTabUI(panelEl);
     refreshEmbeddedContent(panelEl);
