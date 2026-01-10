@@ -44,8 +44,8 @@ function registerSidebarTab() {
     app.extensionManager.registerSidebarTab({
       id: 'alexandria',
       icon: 'pi pi-book',  // PrimeVue icon - book
-      title: 'Prompts of Alexandria',
-      tooltip: 'Prompts of Alexandria',
+      title: 'Prompts',
+      tooltip: 'Prompts',
       type: 'custom',
       render: (container) => {
         // Guard: Don't open if already open or if opened very recently (prevents execution-triggered renders)
