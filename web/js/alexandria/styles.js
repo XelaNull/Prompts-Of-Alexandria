@@ -512,6 +512,35 @@ const CSS = `
     border-bottom-color: var(--alexandria-accent);
   }
 
+  /* ============ Workflow Banner ============ */
+  .alexandria-workflow-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .alexandria-workflow-saved {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border-bottom: 1px solid rgba(34, 197, 94, 0.3);
+  }
+  .alexandria-workflow-unsaved {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  .alexandria-workflow-icon {
+    font-size: 14px;
+  }
+  .alexandria-workflow-name {
+    font-weight: 600;
+  }
+  .alexandria-workflow-warning {
+    font-weight: 500;
+  }
+
   /* ============ Toolbar ============ */
   .alexandria-toolbar {
     display: flex;

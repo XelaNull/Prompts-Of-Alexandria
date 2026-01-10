@@ -351,6 +351,17 @@ function renderPanelContent(panelEl) {
 
   } else if (uiMode === 'create') {
     panelEl.className = 'alexandria-panel alexandria-panel-wide';
+    const workflowIdentity = Detection.getWorkflowIdentity();
+    const workflowBanner = workflowIdentity.isSaved
+      ? `<div class="alexandria-workflow-banner alexandria-workflow-saved">
+           <span class="alexandria-workflow-icon">📂</span>
+           <span class="alexandria-workflow-name">${escapeHtml(workflowIdentity.name)}</span>
+         </div>`
+      : `<div class="alexandria-workflow-banner alexandria-workflow-unsaved">
+           <span class="alexandria-workflow-icon">⚠️</span>
+           <span class="alexandria-workflow-warning">Workflow not saved - please save your workflow first (Ctrl+S)</span>
+         </div>`;
+
     panelEl.innerHTML = `
       <div class="alexandria-header">
         <div class="alexandria-title">
@@ -363,6 +374,7 @@ function renderPanelContent(panelEl) {
         </div>
         <button class="alexandria-close">&times;</button>
       </div>
+      ${workflowBanner}
       <div class="alexandria-toolbar">
         <div class="alexandria-search">
           <input type="text" placeholder="Search nodes..." class="alexandria-search-input" />
