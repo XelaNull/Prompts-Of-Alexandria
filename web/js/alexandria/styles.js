@@ -1241,6 +1241,69 @@ const CSS = `
     background: rgba(255, 255, 255, 0.3);
   }
 
+  /* ============ Template Workflow Sections ============ */
+  .alexandria-template-section {
+    margin-bottom: 8px;
+  }
+  .alexandria-template-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--alexandria-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .alexandria-template-section-collapsible {
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .alexandria-template-section-collapsible:hover {
+    background: var(--alexandria-bg-tertiary);
+  }
+  .alexandria-template-section-icon {
+    font-size: 12px;
+  }
+  .alexandria-template-section-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .alexandria-template-section-count {
+    background: var(--alexandria-bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+  }
+  .alexandria-template-section-toggle {
+    font-size: 8px;
+    color: var(--alexandria-text-muted);
+    margin-left: 4px;
+  }
+  .alexandria-template-section-other {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--alexandria-border);
+  }
+  .alexandria-template-workflow-tag {
+    display: inline-block;
+    background: var(--alexandria-bg-tertiary);
+    color: var(--alexandria-text-muted);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
   /* ============ Version Bar (Preview) ============ */
   .alexandria-version-bar {
     display: flex;

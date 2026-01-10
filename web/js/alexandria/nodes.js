@@ -59,6 +59,14 @@ export function handleNodeSave(templateName) {
   saveInProgress = true;
 
   try {
+    // Check if workflow is saved first
+    const workflowIdentity = Detection.getWorkflowIdentity();
+    if (!workflowIdentity.isSaved) {
+      console.error('Alexandria: Cannot save template - workflow not saved. Please save your workflow first (Ctrl+S).');
+      UI.showToast?.('Please save your workflow first (Ctrl+S) before saving templates', 'error');
+      return;
+    }
+
     const entries = Detection.createTemplateEntries();
 
     if (!entries || entries.length === 0) {
@@ -87,7 +95,7 @@ export function handleNodeSave(templateName) {
         console.log(`Alexandria: Updated template "${templateName}" (${entries.length} prompts)`);
       }
     } else {
-      success = Storage.createTemplate(templateName, entries) !== null;
+      success = Storage.createTemplate(templateName, entries, workflowIdentity) !== null;
       if (success) {
         console.log(`Alexandria: Created template "${templateName}" (${entries.length} prompts)`);
       }

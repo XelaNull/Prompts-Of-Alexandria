@@ -1213,13 +1213,46 @@ function updateStatusBar() {
 // ============ Template List ============
 
 /**
+ * Render a single template item HTML
+ * @param {Object} template - Template object
+ * @param {boolean} showWorkflowTag - Whether to show workflow name tag
+ * @returns {string} HTML string
+ */
+function renderTemplateItem(template, showWorkflowTag = false) {
+  const isSelected = template.id === selectedTemplateId;
+  const version = template.versions[template.currentVersionIndex];
+  const entryCount = version?.entries?.length || 0;
+  const timeAgo = getTimeAgo(template.updatedAt);
+  const versionCount = template.versions?.length || 1;
+  const workflowTag = showWorkflowTag && template.workflowName
+    ? `<span class="alexandria-template-workflow-tag" title="${escapeHtml(template.workflowName)}">${escapeHtml(template.workflowName)}</span>`
+    : '';
+
+  return `
+    <div class="alexandria-template-item ${isSelected ? 'selected' : ''}" data-template-id="${template.id}">
+      <div class="alexandria-template-info">
+        <div class="alexandria-template-name">${escapeHtml(template.name)}${workflowTag}</div>
+        <div class="alexandria-template-meta">
+          ${entryCount} prompt${entryCount !== 1 ? 's' : ''} · ${timeAgo}
+          ${versionCount > 1 ? `<span class="alexandria-version-badge" title="${versionCount} versions saved">v${versionCount}</span>` : ''}
+        </div>
+      </div>
+      <div class="alexandria-template-actions">
+        <button class="alexandria-btn-icon" data-action="rename-template" data-template-id="${template.id}" title="Rename">✏️</button>
+        <button class="alexandria-btn-icon" data-action="delete-template" data-template-id="${template.id}" title="Delete">🗑️</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Render the template list HTML
  * @returns {string} HTML string
  */
 function renderTemplateList() {
-  const templates = Storage.getTemplates();
+  const allTemplates = Storage.getTemplates();
 
-  if (templates.length === 0) {
+  if (allTemplates.length === 0) {
     return `
       <div class="alexandria-template-empty">
         <div class="alexandria-template-empty-icon">📭</div>
@@ -1229,29 +1262,85 @@ function renderTemplateList() {
     `;
   }
 
-  return templates.map(template => {
-    const isSelected = template.id === selectedTemplateId;
-    const version = template.versions[template.currentVersionIndex];
-    const entryCount = version?.entries?.length || 0;
-    const timeAgo = getTimeAgo(template.updatedAt);
-    const versionCount = template.versions?.length || 1;
+  // Get current workflow identity
+  const workflowIdentity = Detection.getWorkflowIdentity();
+  const currentWorkflowId = workflowIdentity?.id || null;
 
-    return `
-      <div class="alexandria-template-item ${isSelected ? 'selected' : ''}" data-template-id="${template.id}">
-        <div class="alexandria-template-info">
-          <div class="alexandria-template-name">${escapeHtml(template.name)}</div>
-          <div class="alexandria-template-meta">
-            ${entryCount} prompt${entryCount !== 1 ? 's' : ''} · ${timeAgo}
-            ${versionCount > 1 ? `<span class="alexandria-version-badge" title="${versionCount} versions saved">v${versionCount}</span>` : ''}
-          </div>
+  // Separate templates by workflow
+  const currentWorkflowTemplates = currentWorkflowId
+    ? Storage.getTemplatesForWorkflow(currentWorkflowId)
+    : [];
+  const otherWorkflowTemplates = currentWorkflowId
+    ? Storage.getTemplatesFromOtherWorkflows(currentWorkflowId)
+    : [];
+  const legacyTemplates = Storage.getLegacyTemplates();
+
+  let html = '';
+
+  // Current workflow templates section
+  if (currentWorkflowTemplates.length > 0) {
+    const workflowName = workflowIdentity?.name || 'Current Workflow';
+    html += `
+      <div class="alexandria-template-section">
+        <div class="alexandria-template-section-header">
+          <span class="alexandria-template-section-icon">📂</span>
+          <span class="alexandria-template-section-title">${escapeHtml(workflowName)}</span>
+          <span class="alexandria-template-section-count">${currentWorkflowTemplates.length}</span>
         </div>
-        <div class="alexandria-template-actions">
-          <button class="alexandria-btn-icon" data-action="rename-template" data-template-id="${template.id}" title="Rename">✏️</button>
-          <button class="alexandria-btn-icon" data-action="delete-template" data-template-id="${template.id}" title="Delete">🗑️</button>
+        ${currentWorkflowTemplates.map(renderTemplateItem).join('')}
+      </div>
+    `;
+  }
+
+  // Legacy templates (no workflow assigned) - show if current workflow has none
+  if (legacyTemplates.length > 0 && currentWorkflowTemplates.length === 0) {
+    html += `
+      <div class="alexandria-template-section">
+        <div class="alexandria-template-section-header">
+          <span class="alexandria-template-section-icon">📜</span>
+          <span class="alexandria-template-section-title">Saved Templates</span>
+          <span class="alexandria-template-section-count">${legacyTemplates.length}</span>
+        </div>
+        ${legacyTemplates.map(renderTemplateItem).join('')}
+      </div>
+    `;
+  }
+
+  // Other workflows section (collapsed by default)
+  const otherTemplatesCount = otherWorkflowTemplates.length + (currentWorkflowTemplates.length > 0 ? legacyTemplates.length : 0);
+  if (otherTemplatesCount > 0) {
+    const otherTemplates = currentWorkflowTemplates.length > 0
+      ? [...otherWorkflowTemplates, ...legacyTemplates]
+      : otherWorkflowTemplates;
+
+    html += `
+      <div class="alexandria-template-section alexandria-template-section-other">
+        <div class="alexandria-template-section-header alexandria-template-section-collapsible" data-action="toggle-other-workflows">
+          <span class="alexandria-template-section-icon">📁</span>
+          <span class="alexandria-template-section-title">Other Workflows</span>
+          <span class="alexandria-template-section-count">${otherTemplates.length}</span>
+          <span class="alexandria-template-section-toggle">▶</span>
+        </div>
+        <div class="alexandria-template-section-content" style="display: none;">
+          ${otherTemplates.map(t => renderTemplateItem(t, true)).join('')}
         </div>
       </div>
     `;
-  }).join('');
+  }
+
+  // If no templates match current workflow, show helpful message
+  if (html === '') {
+    const workflowName = workflowIdentity?.name || 'this workflow';
+    return `
+      <div class="alexandria-template-empty">
+        <div class="alexandria-template-empty-icon">📭</div>
+        <div class="alexandria-template-empty-text">No templates for ${escapeHtml(workflowName)}</div>
+        <div class="alexandria-template-empty-hint">Use "Current Prompts" tab to save your first template</div>
+      </div>
+    `;
+  }
+
+  return html;
 }
 
 /**
@@ -1287,6 +1376,20 @@ function attachTemplateListeners() {
     btn.onclick = (e) => {
       e.stopPropagation();
       confirmDeleteTemplate(btn.dataset.templateId);
+    };
+  });
+
+  // Toggle other workflows section
+  panel.querySelectorAll('[data-action="toggle-other-workflows"]').forEach(header => {
+    header.onclick = () => {
+      const section = header.closest('.alexandria-template-section-other');
+      const content = section?.querySelector('.alexandria-template-section-content');
+      const toggle = header.querySelector('.alexandria-template-section-toggle');
+      if (content && toggle) {
+        const isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? 'block' : 'none';
+        toggle.textContent = isHidden ? '▼' : '▶';
+      }
     };
   });
 }
@@ -2315,6 +2418,13 @@ function loadSelectedTemplate() {
  * Save selected widgets as a template
  */
 function saveAsTemplate() {
+  // Check if workflow is saved first
+  const workflowIdentity = Detection.getWorkflowIdentity();
+  if (!workflowIdentity.isSaved) {
+    showToast('Please save your workflow first (Ctrl+S) before saving templates', 'error');
+    return;
+  }
+
   const selectedEntries = [];
 
   for (const [key, selected] of selectedWidgets) {
@@ -2350,7 +2460,7 @@ function saveAsTemplate() {
     return;
   }
 
-  showSaveDialog(selectedEntries);
+  showSaveDialog(selectedEntries, workflowIdentity);
 }
 
 /**
@@ -2504,8 +2614,9 @@ function showValueModal(node, widget) {
 /**
  * Show save dialog
  * @param {Array} entries - Entries to save
+ * @param {Object} workflowInfo - Workflow identity info
  */
-function showSaveDialog(entries) {
+function showSaveDialog(entries, workflowInfo) {
   const modal = document.createElement('div');
   modal.className = 'alexandria-modal';
   modal.innerHTML = `
@@ -2545,7 +2656,7 @@ function showSaveDialog(entries) {
       Storage.updateTemplate(existing.id, entries);
       showToast(`Template "${name}" updated!`);
     } else {
-      Storage.createTemplate(name, entries);
+      Storage.createTemplate(name, entries, workflowInfo);
       showToast(`Template "${name}" saved!`);
     }
     modal.remove();

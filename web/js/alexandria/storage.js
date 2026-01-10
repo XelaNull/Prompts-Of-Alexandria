@@ -179,7 +179,7 @@ export function getTemplateByName(name) {
   return getTemplates().find(t => t.name === name) || null;
 }
 
-export function createTemplate(name, entries) {
+export function createTemplate(name, entries, workflowInfo = null) {
   const templates = getTemplates();
   const now = new Date().toISOString();
   const hash = computeEntriesHash(entries);
@@ -189,6 +189,9 @@ export function createTemplate(name, entries) {
     name,
     createdAt: now,
     updatedAt: now,
+    // Workflow linking - associates this template with a specific workflow
+    workflowId: workflowInfo?.id || null,
+    workflowName: workflowInfo?.name || null,
     versions: [{
       id: generateId(),
       timestamp: now,
@@ -207,7 +210,7 @@ export function createTemplate(name, entries) {
   }
 
   if (isDebugEnabled()) {
-    console.log(`Alexandria: Created template "${name}" with ${entries.length} entries`);
+    console.log(`Alexandria: Created template "${name}" for workflow "${workflowInfo?.name || 'unknown'}" with ${entries.length} entries`);
   }
 
   return template;
@@ -351,6 +354,80 @@ function applyRetention(template) {
       break; // Safety: couldn't find a version to remove
     }
   }
+}
+
+// ============ Workflow Filtering ============
+
+/**
+ * Get templates for a specific workflow
+ * @param {string} workflowId - Workflow ID to filter by
+ * @returns {Array} Templates matching the workflow
+ */
+export function getTemplatesForWorkflow(workflowId) {
+  return getTemplates().filter(t => t.workflowId === workflowId);
+}
+
+/**
+ * Get templates NOT associated with a specific workflow
+ * @param {string} workflowId - Workflow ID to exclude
+ * @returns {Array} Templates from other workflows
+ */
+export function getTemplatesFromOtherWorkflows(workflowId) {
+  return getTemplates().filter(t => t.workflowId && t.workflowId !== workflowId);
+}
+
+/**
+ * Get legacy templates (those without workflow association)
+ * @returns {Array} Templates without workflowId
+ */
+export function getLegacyTemplates() {
+  return getTemplates().filter(t => !t.workflowId);
+}
+
+/**
+ * Get unique workflow names from all templates
+ * @returns {Array} Array of { id, name, count } objects
+ */
+export function getWorkflowList() {
+  const templates = getTemplates();
+  const workflows = new Map();
+
+  for (const template of templates) {
+    const id = template.workflowId || '_legacy';
+    const name = template.workflowName || 'Unknown Workflow';
+
+    if (!workflows.has(id)) {
+      workflows.set(id, { id, name, count: 0 });
+    }
+    workflows.get(id).count++;
+  }
+
+  return Array.from(workflows.values()).sort((a, b) => {
+    // Legacy at the end
+    if (a.id === '_legacy') return 1;
+    if (b.id === '_legacy') return -1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Update workflow info for a template
+ * @param {string} templateId - Template ID
+ * @param {Object} workflowInfo - { id, name } workflow info
+ * @returns {Object|null} Updated template or null
+ */
+export function updateTemplateWorkflow(templateId, workflowInfo) {
+  const templates = getTemplates();
+  const index = templates.findIndex(t => t.id === templateId);
+
+  if (index === -1) return null;
+
+  templates[index].workflowId = workflowInfo?.id || null;
+  templates[index].workflowName = workflowInfo?.name || null;
+  templates[index].updatedAt = new Date().toISOString();
+
+  saveTemplates(templates);
+  return templates[index];
 }
 
 // ============ Import/Export ============

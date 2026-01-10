@@ -676,5 +676,139 @@ export function createTemplateEntries(detectedPrompts = null) {
   }));
 }
 
+// ============ Workflow Identity ============
+
+/**
+ * Check if the current workflow has been saved (has a filename)
+ * @returns {boolean} True if workflow is saved
+ */
+export function isWorkflowSaved() {
+  return getWorkflowFilename() !== null;
+}
+
+/**
+ * Get a unique identifier for the current workflow.
+ * Tries multiple methods in order of preference:
+ * 1. Workflow filename from ComfyUI (if saved)
+ * 2. Generated signature from node structure
+ *
+ * @returns {Object} { id: string, name: string, source: string, isSaved: boolean }
+ */
+export function getWorkflowIdentity() {
+  // Method 1: Try to get filename from ComfyUI
+  // ComfyUI stores this in various places depending on version
+  const filename = getWorkflowFilename();
+  if (filename) {
+    return {
+      id: generateWorkflowHash(filename),
+      name: filename.replace(/\.json$/i, ''),
+      source: 'filename',
+      isSaved: true
+    };
+  }
+
+  // Method 2: Generate from node structure (workflow not saved)
+  const signature = generateWorkflowSignature();
+  return {
+    id: signature.hash,
+    name: signature.name,
+    source: 'generated',
+    isSaved: false
+  };
+}
+
+/**
+ * Try to get the workflow filename from ComfyUI
+ * @returns {string|null} Filename or null if not saved/available
+ */
+function getWorkflowFilename() {
+  try {
+    // ComfyUI stores filename in different places depending on version
+    // Try common locations
+    if (app.graphDialog?.filename) {
+      return app.graphDialog.filename;
+    }
+    if (app.graph?.filename) {
+      return app.graph.filename;
+    }
+    // Check for title in graph (sometimes set from filename)
+    if (app.graph?.title && app.graph.title !== 'Workflow') {
+      return app.graph.title;
+    }
+    // Check localStorage for last loaded workflow
+    const lastWorkflow = localStorage.getItem('Comfy.PreviousWorkflow');
+    if (lastWorkflow) {
+      try {
+        const data = JSON.parse(lastWorkflow);
+        if (data.workflow?.name) return data.workflow.name;
+      } catch (e) { /* ignore parse errors */ }
+    }
+  } catch (e) {
+    console.warn('Alexandria: Could not get workflow filename', e);
+  }
+  return null;
+}
+
+/**
+ * Generate a workflow signature based on node structure.
+ * Creates a stable-ish identifier from the types of nodes present.
+ *
+ * @returns {Object} { hash: string, name: string }
+ */
+function generateWorkflowSignature() {
+  if (!app.graph?._nodes) {
+    return { hash: 'empty', name: 'Empty Workflow' };
+  }
+
+  const nodes = app.graph._nodes;
+
+  // Count node types for signature
+  const typeCounts = {};
+  for (const node of nodes) {
+    typeCounts[node.type] = (typeCounts[node.type] || 0) + 1;
+  }
+
+  // Sort for consistent ordering
+  const sortedTypes = Object.entries(typeCounts)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  // Generate hash from node type composition
+  const signatureStr = sortedTypes
+    .map(([type, count]) => `${type}:${count}`)
+    .join('|');
+
+  const hash = simpleHash(signatureStr);
+
+  // Generate a human-readable name
+  const promptCount = getDetectedPrompts().length;
+  const totalNodes = nodes.length;
+  const name = `Untitled (${promptCount} prompt${promptCount !== 1 ? 's' : ''}, ${totalNodes} nodes)`;
+
+  return { hash, name };
+}
+
+/**
+ * Generate a simple hash from a string
+ * @param {string} str - Input string
+ * @returns {string} Hash string
+ */
+function generateWorkflowHash(str) {
+  return 'wf_' + simpleHash(str);
+}
+
+/**
+ * Simple hash function (djb2)
+ * @param {string} str - Input string
+ * @returns {string} Hex hash
+ */
+function simpleHash(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}
+
 // Export configuration for potential extension
 export { KNOWN_PROMPT_NODES, SAMPLER_NODES, CONDITIONING_COMBINERS };
