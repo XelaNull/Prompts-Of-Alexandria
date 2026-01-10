@@ -143,15 +143,23 @@ Alexandria.disableDebug()
 
 ## Data Storage
 
-Templates are stored as JSON files on the server:
+All data is stored as JSON files on the server, enabling cross-device access:
 
 | Location | Contents |
 |----------|----------|
 | `ComfyUI/alexandria_templates/` | Template JSON files (one per template) |
+| `ComfyUI/alexandria_templates/_settings.json` | Global settings (detection mode, retention policy) |
+| `ComfyUI/alexandria_templates/_workflow_overrides/` | Per-workflow manual widget selections |
 
-Browser localStorage is used for:
-- Widget selection preferences (include/exclude overrides)
-- User settings
+### Cross-Device Sync
+
+Settings and manual widget selections (include/exclude overrides) are stored server-side, so when you:
+- Open the same workflow on a different PC
+- Access ComfyUI from another browser
+
+You'll see the same detection mode and manual include/exclude selections you configured previously.
+
+Widget selections use stable keys based on `nodeType:nodeTitle:widgetName` rather than node IDs, so they persist even if node IDs change when re-opening a workflow.
 
 ## Troubleshooting
 
@@ -176,8 +184,8 @@ Check browser console for errors. Common causes:
 
 ## Known Limitations
 
-- Widget selection preferences stored in browser localStorage (not synced across machines)
 - Detection relies on ComfyUI internal APIs (`app.graph._nodes`)
+- Workflow identification uses the workflow filename; unnamed workflows share a default context
 
 ## Contributing
 
