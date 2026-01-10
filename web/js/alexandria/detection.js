@@ -52,7 +52,6 @@ const KNOWN_PROMPT_NODES = {
 
   // Various prompt nodes
   'PromptBuilder': ['prompt'],
-  'StringFunction|pysssss': ['text'],
 };
 
 /**
@@ -180,12 +179,13 @@ const OUTPUT_NODE_TYPE_PATTERNS = [
  * Specific node types that are definitely NOT prompt sources
  */
 const NON_PROMPT_NODE_TYPES = [
-  'ShowText|pysssss',    // Display node, not input
-  'Note',                // Sticky notes
-  'PrimitiveNode',       // Just stores values, not prompts
-  'Reroute',             // Routing node
-  'PreviewText',         // Preview display
-  'DebugPrint',          // Debug output
+  'ShowText|pysssss',       // Display node, not input
+  'StringFunction|pysssss', // String processing utility
+  'Note',                   // Sticky notes
+  'PrimitiveNode',          // Just stores values, not prompts
+  'Reroute',                // Routing node
+  'PreviewText',            // Preview display
+  'DebugPrint',             // Debug output
 ];
 
 /**
