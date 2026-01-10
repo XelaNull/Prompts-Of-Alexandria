@@ -24,7 +24,7 @@ Or maybe you're like me - you have 15 different "scene" prompts you rotate throu
 
 **Quick-Access Sidebar** - Click the book icon for instant access to all your templates. Collapsible sections, one-click loading, version history at your fingertips.
 
-**Set It and Forget It** - Drop an "Alexandria Control" node into your workflow. It auto-saves every time you generate - only when something changes.
+**Set It and Forget It** - Drop the two Alexandria nodes into your workflow (Control + Save). It auto-saves every time you generate - only when something changes.
 
 **Zero Dependencies** - Just clone and go. No pip installs, no waiting. Pure Python standard library.
 
