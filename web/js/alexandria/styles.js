@@ -633,8 +633,8 @@ const CSS = `
   .alexandria-node {
     background: var(--alexandria-bg-secondary);
     border: 1px solid var(--alexandria-border);
-    border-radius: 6px;
-    margin-bottom: 6px;
+    border-radius: 5px;
+    margin-bottom: 4px;
     overflow: hidden;
   }
   .alexandria-node.has-detected {
@@ -646,13 +646,13 @@ const CSS = `
   .alexandria-node-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 5px;
+    padding: 5px 10px;
     background: var(--alexandria-bg-tertiary);
     border-bottom: 1px solid var(--alexandria-border);
   }
   .alexandria-node-icon {
-    font-size: 18px;
+    font-size: 14px;
   }
   .alexandria-node-title {
     font-weight: 600;
@@ -688,22 +688,23 @@ const CSS = `
 
   /* ============ Collapsible Groups ============ */
   .alexandria-group {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .alexandria-group-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 5px;
+    padding: 4px 10px;
     background: var(--alexandria-bg-tertiary);
     border: 1px solid var(--alexandria-border);
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     user-select: none;
     transition: background 0.2s ease;
     position: sticky;
     top: 0;
     z-index: 10;
+    font-size: 12px;
   }
   .alexandria-group-header:hover {
     background: var(--alexandria-bg-secondary);
@@ -789,67 +790,67 @@ const CSS = `
   .alexandria-widget {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 8px 0;
+    gap: 2px;
+    padding: 4px 0;
     border-bottom: 1px solid var(--alexandria-border);
   }
   .alexandria-widget:last-child {
     border-bottom: none;
   }
   .alexandria-widget.widget-detected {
-    background: rgba(233, 69, 96, 0.1);
-    margin: 0 -16px;
-    padding: 8px 16px;
+    background: rgba(233, 69, 96, 0.08);
+    margin: 0 -12px;
+    padding: 4px 12px;
   }
   .alexandria-widget-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
   }
   .alexandria-widget-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
     flex: 1;
     min-width: 0;
   }
   .alexandria-widget-checkbox {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     flex-shrink: 0;
     accent-color: var(--alexandria-accent);
     cursor: pointer;
   }
   .alexandria-widget-name {
     font-weight: 500;
-    font-size: 13px;
+    font-size: 12px;
   }
   .alexandria-confidence {
-    padding: 2px 6px;
+    padding: 1px 5px;
     background: var(--alexandria-info);
     color: white;
-    border-radius: 4px;
-    font-size: 10px;
+    border-radius: 3px;
+    font-size: 9px;
     font-weight: 500;
     white-space: nowrap;
   }
   .alexandria-widget-value {
-    padding: 6px 10px;
+    padding: 3px 8px;
     background: var(--alexandria-bg-tertiary);
-    border-radius: 4px;
+    border-radius: 3px;
     font-family: monospace;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--alexandria-text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-left: 24px;
+    margin-left: 20px;
   }
   .alexandria-widget-actions {
     display: flex;
-    gap: 4px;
+    gap: 2px;
     flex-shrink: 0;
   }
 
