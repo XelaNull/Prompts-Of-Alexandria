@@ -34,6 +34,8 @@ Or maybe you're like me - you have 15 different "scene" prompts you rotate throu
 
 **Server-Side Storage** - Templates saved as JSON files on disk. No more localStorage limits. Back them up with your ComfyUI folder.
 
+**Zero Dependencies** - Just drop it in custom_nodes and go. No pip installs, no waiting for packages. Pure Python standard library + ComfyUI built-ins.
+
 **Workflow Nodes** - Drop an "Alexandria Control" node into your workflow. It auto-saves your prompts every time you generate. Set it and forget it.
 
 ### How It Works

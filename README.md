@@ -18,6 +18,7 @@ A ComfyUI extension for template-based backup and restoration of text prompts ac
 - **Version History** - Saves create new versions only when changes are detected; load any previous version from the sidebar
 - **Server-Side Storage** - Templates saved as JSON files alongside your ComfyUI installation, not in the browser
 - **Import/Export** - Backup all templates to JSON, share with others
+- **Zero Dependencies** - Pure Python standard library and ComfyUI built-ins, no extra packages to install
 
 ## Installation
 
