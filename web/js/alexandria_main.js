@@ -18,6 +18,10 @@ import { installGlobalAPI } from "./alexandria/api.js";
 
 // ============ Sidebar Registration ============
 
+// Cooldown to prevent rapid re-opens from sidebar render cycles
+let lastSidebarOpen = 0;
+const SIDEBAR_COOLDOWN_MS = 500;
+
 /**
  * Register Alexandria in ComfyUI's sidebar
  * Uses the extensionManager API to add an icon to the left sidebar
@@ -44,7 +48,15 @@ function registerSidebarTab() {
       tooltip: 'Prompts of Alexandria',
       type: 'custom',
       render: (container) => {
-        // Immediately open the popup when this tab is selected
+        // Guard: Don't open if already open or if opened very recently (prevents execution-triggered renders)
+        const now = Date.now();
+        if (UI.isOpenState() || (now - lastSidebarOpen) < SIDEBAR_COOLDOWN_MS) {
+          container.innerHTML = '';
+          return;
+        }
+        lastSidebarOpen = now;
+
+        // Open the popup
         UI.open();
 
         // Empty the container - we don't need sidebar content
