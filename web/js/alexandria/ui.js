@@ -246,6 +246,21 @@ export function close() {
     panel = null;
   }
   isOpen = false;
+
+  // Deselect the sidebar icon if it's active
+  deselectSidebarIcon();
+}
+
+/**
+ * Deselect the Alexandria sidebar icon
+ */
+function deselectSidebarIcon() {
+  // Try to find the sidebar button and check if it's selected
+  const sidebarBtn = document.querySelector('[data-sidebar-id="alexandria"]');
+  if (sidebarBtn && sidebarBtn.classList.contains('p-button-primary')) {
+    // Button is active, click to deselect
+    sidebarBtn.click();
+  }
 }
 
 /**
