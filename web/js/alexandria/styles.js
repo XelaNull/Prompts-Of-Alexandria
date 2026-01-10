@@ -173,6 +173,15 @@ const CSS = `
   .alexandria-icon {
     font-size: 20px;
   }
+  .alexandria-version {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--alexandria-text-muted);
+    background: var(--alexandria-bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+  }
   .alexandria-close {
     background: none;
     border: none;

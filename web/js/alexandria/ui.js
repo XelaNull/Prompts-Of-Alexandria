@@ -9,6 +9,10 @@ import { app } from "../../../../scripts/app.js";
 import * as Storage from "./storage.js";
 import * as Detection from "./detection.js";
 
+// ============ Version ============
+
+const VERSION = "1.1.0";
+
 // ============ State ============
 
 let panel = null;
@@ -282,6 +286,7 @@ function renderPanelContent(panelEl) {
         <div class="alexandria-title">
           <span class="alexandria-icon">📜</span>
           Prompts of Alexandria
+          <span class="alexandria-version">v${VERSION}</span>
         </div>
         <button class="alexandria-close">&times;</button>
       </div>
