@@ -281,7 +281,7 @@ function renderPanelContent(panelEl) {
       <div class="alexandria-header">
         <div class="alexandria-title">
           <span class="alexandria-icon">📜</span>
-          Prompts of Alexandria
+          Prompts
         </div>
         <button class="alexandria-close">&times;</button>
       </div>
