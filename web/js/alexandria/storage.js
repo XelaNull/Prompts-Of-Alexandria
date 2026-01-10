@@ -443,20 +443,44 @@ function applyRetention(template) {
 
 /**
  * Get templates for a specific workflow (respects custom order)
+ * Matches by workflowId first, then falls back to workflowName comparison
+ * to handle templates saved before ID normalization fixes
  * @param {string} workflowId - Workflow ID to filter by
+ * @param {string} workflowName - Optional workflow name for fallback matching
  * @returns {Array} Templates matching the workflow
  */
-export function getTemplatesForWorkflow(workflowId) {
-  return getTemplatesSorted().filter(t => t.workflowId === workflowId);
+export function getTemplatesForWorkflow(workflowId, workflowName = null) {
+  const normalizedName = workflowName?.toLowerCase().replace(/\.json$/i, '').trim();
+  return getTemplatesSorted().filter(t => {
+    // Direct ID match
+    if (t.workflowId === workflowId) return true;
+    // Fallback: compare normalized workflow names (handles old templates with mismatched IDs)
+    if (normalizedName && t.workflowName) {
+      const templateName = t.workflowName.toLowerCase().replace(/\.json$/i, '').trim();
+      return templateName === normalizedName;
+    }
+    return false;
+  });
 }
 
 /**
  * Get templates NOT associated with a specific workflow (respects custom order)
  * @param {string} workflowId - Workflow ID to exclude
+ * @param {string} workflowName - Optional workflow name for fallback matching
  * @returns {Array} Templates from other workflows
  */
-export function getTemplatesFromOtherWorkflows(workflowId) {
-  return getTemplatesSorted().filter(t => t.workflowId && t.workflowId !== workflowId);
+export function getTemplatesFromOtherWorkflows(workflowId, workflowName = null) {
+  const normalizedName = workflowName?.toLowerCase().replace(/\.json$/i, '').trim();
+  return getTemplatesSorted().filter(t => {
+    if (!t.workflowId) return false; // Legacy templates without workflow
+    // Check if it matches current workflow (by ID or name)
+    if (t.workflowId === workflowId) return false;
+    if (normalizedName && t.workflowName) {
+      const templateName = t.workflowName.toLowerCase().replace(/\.json$/i, '').trim();
+      if (templateName === normalizedName) return false;
+    }
+    return true;
+  });
 }
 
 /**

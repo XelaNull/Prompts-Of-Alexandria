@@ -1336,12 +1336,13 @@ function renderTemplateList() {
     matches: t.workflowId === currentWorkflowId
   })));
 
-  // Separate templates by workflow
+  // Separate templates by workflow (pass name for fallback matching of old templates)
+  const currentWorkflowName = workflowIdentity?.name || null;
   const currentWorkflowTemplates = currentWorkflowId
-    ? Storage.getTemplatesForWorkflow(currentWorkflowId)
+    ? Storage.getTemplatesForWorkflow(currentWorkflowId, currentWorkflowName)
     : [];
   const otherWorkflowTemplates = currentWorkflowId
-    ? Storage.getTemplatesFromOtherWorkflows(currentWorkflowId)
+    ? Storage.getTemplatesFromOtherWorkflows(currentWorkflowId, currentWorkflowName)
     : [];
   const legacyTemplates = Storage.getLegacyTemplates();
 
