@@ -8,11 +8,14 @@ So I got tired of organizing prompts. Juggling 15 different scene variations, co
 
 **Prompts of Alexandria** fixes this. It auto-detects your prompt nodes, saves them as templates with full version history, and lets you restore any version with one click from a sidebar panel. No more notepad files. No more "wait which prompt was that?"
 
+Built and tested on ComfyUI's new UI.
+
 ---
 
 **The good stuff:**
 
 - Smart detection that actually works - finds your prompts automatically across CLIPTextEncode, SDXL, custom nodes, whatever
+- Templates saved per workflow - keeps your scenes organized by project
 - Full version history - every save tracked, load any previous version instantly
 - Sidebar quick-access - click the book icon, see all your templates, one-click load
 - Two-node auto-save - drop Control + Save nodes in your workflow, it saves on every gen (only when things actually change)
