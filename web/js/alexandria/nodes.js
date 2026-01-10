@@ -36,9 +36,9 @@ export function setupWebSocketHandlers() {
 
   // Listen for save trigger from backend
   api.addEventListener("alexandria.trigger_save", (event) => {
-    const { node_id, template_name } = event.detail;
+    const { node_id, template_name, storage_directory } = event.detail;
     console.log(`Alexandria: Save triggered by node ${node_id} for "${template_name}"`);
-    handleNodeSave(template_name);
+    handleNodeSave(template_name, storage_directory);
   });
 
   // Listen for storage directory updates from Control node
@@ -57,10 +57,12 @@ export function setupWebSocketHandlers() {
 
 /**
  * Handle save trigger from node execution
+ * Templates are always saved to server file storage for cross-PC access
  * @param {string} templateName - Template name to save to
- * @returns {boolean} True if save succeeded, false otherwise
+ * @param {string} storageDirectory - Directory path for file storage
+ * @returns {Promise<boolean>} True if save succeeded, false otherwise
  */
-export function handleNodeSave(templateName) {
+export async function handleNodeSave(templateName, storageDirectory = null) {
   // Race condition guard - prevent concurrent saves from duplicating
   if (saveInProgress) {
     console.log('Alexandria: Save already in progress, skipping');
@@ -90,7 +92,8 @@ export function handleNodeSave(templateName) {
 
     // Check for changes using hash
     const newHash = Storage.computeEntriesHash(entries);
-    const lastHash = lastSaveHashes.get(templateName);
+    const cacheKey = `${storageDirectory || 'default'}:${templateName}`;
+    const lastHash = lastSaveHashes.get(cacheKey);
 
     if (lastHash === newHash) {
       if (Storage.isDebugEnabled()) {
@@ -100,34 +103,43 @@ export function handleNodeSave(templateName) {
       return true;
     }
 
-    // Save or update template
-    const existing = Storage.getTemplateByName(templateName);
+    // Set storage directory on backend if specified
+    if (storageDirectory) {
+      await Storage.setStorageDirectory(storageDirectory);
+    }
+
+    // Check if template exists in file storage
+    const existing = await Storage.getTemplateByNameFromFiles(templateName);
     let success = false;
 
     if (existing) {
-      success = Storage.updateTemplate(existing.id, entries) !== null;
+      const result = await Storage.updateTemplateFileOnly(templateName, entries);
+      success = result !== null;
       if (success) {
         console.log(`Alexandria: Updated template "${templateName}" (${entries.length} prompts)`);
       }
     } else {
-      success = Storage.createTemplate(templateName, entries, workflowIdentity) !== null;
+      const result = await Storage.createTemplateFileOnly(templateName, entries, workflowIdentity);
+      success = result !== null;
       if (success) {
         console.log(`Alexandria: Created template "${templateName}" for workflow "${workflowIdentity.name}" (${entries.length} prompts)`);
       }
     }
 
+    if (!success) {
+      console.error(`Alexandria: Failed to save template "${templateName}"`);
+      UI.showToast?.('Failed to save template', 'error');
+    }
+
     // Only update hash cache if save actually succeeded
     if (success) {
-      lastSaveHashes.set(templateName, newHash);
+      lastSaveHashes.set(cacheKey, newHash);
 
       // Memory leak prevention: evict oldest entries if over limit
       if (lastSaveHashes.size > MAX_HASH_ENTRIES) {
         const firstKey = lastSaveHashes.keys().next().value;
         lastSaveHashes.delete(firstKey);
       }
-    } else {
-      console.error(`Alexandria: Failed to save template "${templateName}" - localStorage may be full`);
-      UI.showToast?.('Failed to save - storage may be full', 'error');
     }
 
     return success;
@@ -149,10 +161,10 @@ export function addControlNodeWidgets(node) {
     return widget?.value || "My Template";
   };
 
-  // Add Save Now button
-  node.addWidget("button", "Save Now", null, () => {
+  // Add Save Now button (saves to server file storage)
+  node.addWidget("button", "Save Now", null, async () => {
     const templateName = getTemplateName();
-    const success = handleNodeSave(templateName);
+    const success = await handleNodeSave(templateName);
     if (success) {
       UI.showToast?.(`Saved "${templateName}"`);
     }

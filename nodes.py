@@ -69,12 +69,15 @@ def _send_to_frontend(event_type: str, data: dict) -> bool:
 class AlexandriaSaveNode:
     """
     Save node that triggers template saves when executed.
+    Templates are stored on the ComfyUI server for cross-PC access.
     Outputs template_name and timestamp for chaining or display.
 
     Inputs:
         - template_name: Name from connected node (e.g., Control Panel)
         - name_override: When enabled, use override_name instead of template_name
         - override_name: Custom name to use when name_override is enabled
+        - path_override: When enabled, use custom_path instead of default
+        - custom_path: Custom storage directory (when path_override is enabled)
 
     Outputs:
         - template_name: The actual template name used (for chaining)
@@ -99,6 +102,11 @@ class AlexandriaSaveNode:
                     "default": "My Override Name",
                     "multiline": False,
                 }),
+                "path_override": ("BOOLEAN", {"default": False}),
+                "custom_path": ("STRING", {
+                    "default": DEFAULT_STORAGE_DIR,
+                    "multiline": False,
+                }),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -110,21 +118,36 @@ class AlexandriaSaveNode:
         # Always execute to ensure save triggers
         return float("nan")
 
-    def execute(self, template_name, name_override, override_name, unique_id=None):
+    def execute(self, template_name, name_override, override_name, path_override, custom_path, unique_id=None):
         """
         Trigger a save and return template info.
-        The actual save is handled via the frontend after execution.
+        Templates are always saved to server file storage for cross-PC access.
         """
-        import datetime
-        timestamp = datetime.datetime.now().isoformat()
+        global _current_storage_dir
+        timestamp = datetime.now().isoformat()
 
         # Use override name if enabled, otherwise use the input template_name
         actual_name = override_name if name_override else template_name
+
+        # Use custom path if override enabled, otherwise use default
+        storage_dir = custom_path if path_override and custom_path else DEFAULT_STORAGE_DIR
+        _current_storage_dir = storage_dir
+
+        # Ensure the storage directory exists
+        storage_path = Path(storage_dir)
+        if not storage_path.is_absolute():
+            storage_path = Path(os.getcwd()) / storage_path
+
+        try:
+            storage_path.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Alexandria: Could not create storage directory {storage_path}: {e}")
 
         _send_to_frontend("alexandria.trigger_save", {
             "node_id": unique_id,
             "template_name": actual_name,
             "timestamp": timestamp,
+            "storage_directory": str(_get_storage_path()),
         })
         return (actual_name, timestamp)
 
@@ -150,10 +173,6 @@ class AlexandriaControlNode:
                     "default": "My Template",
                     "multiline": False,
                 }),
-                "storage_directory": ("STRING", {
-                    "default": DEFAULT_STORAGE_DIR,
-                    "multiline": False,
-                }),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -165,29 +184,7 @@ class AlexandriaControlNode:
         # Always consider changed so buttons work on re-execution
         return float("nan")
 
-    def execute(self, template_name, storage_directory, unique_id=None):
-        global _current_storage_dir
-
-        # Update the global storage directory
-        _current_storage_dir = storage_directory if storage_directory else DEFAULT_STORAGE_DIR
-
-        # Ensure the storage directory exists
-        storage_path = Path(_current_storage_dir)
-        if not storage_path.is_absolute():
-            # Make relative to ComfyUI root
-            storage_path = Path(os.getcwd()) / storage_path
-
-        try:
-            storage_path.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            print(f"Alexandria: Could not create storage directory {storage_path}: {e}")
-
-        # Notify frontend of the storage directory
-        _send_to_frontend("alexandria.storage_dir", {
-            "node_id": unique_id,
-            "storage_directory": str(storage_path),
-        })
-
+    def execute(self, template_name, unique_id=None):
         # Output template_name so it can be connected to other Alexandria nodes
         return (template_name,)
 

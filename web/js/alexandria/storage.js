@@ -1,13 +1,13 @@
 /**
  * Alexandria Storage Module
- * Handles localStorage persistence for templates, settings, and manual selections.
+ * Handles server-side file storage for templates (cross-PC access),
+ * and localStorage for settings and manual selections.
  *
  * @module alexandria/storage
  */
 
 // Storage keys - centralized to prevent typos
 const STORAGE_KEYS = {
-  TEMPLATES: 'alexandria_templates',
   MANUAL_SELECTIONS: 'alexandria_manual',
   SETTINGS: 'alexandria_settings',
   TEMPLATE_ORDER: 'alexandria_template_order',
@@ -31,6 +31,11 @@ const STORAGE_DIR_KEY = 'alexandria_storage_directory';
 
 // Cache for current storage directory from backend
 let _currentStorageDir = null;
+
+// Templates cache - loaded from server file storage
+// This ensures templates are accessible from any PC
+let _templatesCache = [];
+let _templatesCacheLoaded = false;
 
 // ============ File Storage API ============
 
@@ -134,43 +139,12 @@ export async function deleteTemplateFromFile(templateName) {
 }
 
 /**
- * Sync templates between localStorage and file storage
- * Merges both sources, preferring file storage for conflicts
- * @returns {Promise<Array>} Merged array of templates
+ * Sync templates - refreshes cache from server file storage
+ * @returns {Promise<Array>} Templates array
+ * @deprecated Use refreshTemplatesFromServer() instead
  */
 export async function syncTemplates() {
-  try {
-    // Get templates from both sources
-    const localTemplates = getTemplates();
-
-    // Send local templates to backend for sync
-    const response = await fetch('/alexandria/templates/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templates: localTemplates })
-    });
-    const data = await response.json();
-
-    if (data.status === 'ok') {
-      // Update local storage with merged templates
-      const mergedTemplates = data.templates || [];
-
-      // Merge: keep local templates and add any new ones from files
-      const localByName = new Map(localTemplates.map(t => [t.name, t]));
-      for (const fileTemplate of mergedTemplates) {
-        if (!localByName.has(fileTemplate.name)) {
-          localTemplates.push(fileTemplate);
-        }
-      }
-      saveTemplates(localTemplates);
-
-      console.log(`Alexandria: Synced ${data.saved_count} templates to files, ${data.total_count} total in file storage`);
-      return mergedTemplates;
-    }
-  } catch (e) {
-    console.warn('Alexandria: Could not sync templates', e);
-  }
-  return getTemplates();
+  return refreshTemplatesFromServer();
 }
 
 /**
@@ -361,14 +335,66 @@ export function getManualSelection(nodeType, widgetName) {
   return key in selections ? selections[key] : null;
 }
 
-// ============ Templates ============
+// ============ Templates (Server File Storage) ============
 
-export function getTemplates() {
-  return safeGet(STORAGE_KEYS.TEMPLATES, []);
+/**
+ * Refresh templates cache from server file storage
+ * Call this when opening the UI to ensure fresh data
+ * @returns {Promise<Array>} Templates array
+ */
+export async function refreshTemplatesFromServer() {
+  try {
+    const templates = await loadTemplatesFromFiles();
+    _templatesCache = templates;
+    _templatesCacheLoaded = true;
+    if (isDebugEnabled()) {
+      console.log(`Alexandria: Loaded ${templates.length} templates from server`);
+    }
+    return templates;
+  } catch (e) {
+    console.error('Alexandria: Failed to load templates from server', e);
+    return _templatesCache;
+  }
 }
 
-export function saveTemplates(templates) {
-  return safeSet(STORAGE_KEYS.TEMPLATES, templates);
+/**
+ * Get all templates (from cache, must call refreshTemplatesFromServer first)
+ * @returns {Array} Templates array
+ */
+export function getTemplates() {
+  if (!_templatesCacheLoaded) {
+    console.warn('Alexandria: Templates cache not loaded - call refreshTemplatesFromServer() first');
+  }
+  return _templatesCache;
+}
+
+/**
+ * Check if templates cache has been loaded
+ * @returns {boolean}
+ */
+export function isTemplatesCacheLoaded() {
+  return _templatesCacheLoaded;
+}
+
+/**
+ * Update the local templates cache (after a save operation)
+ * @param {Object} template - Template to add or update in cache
+ */
+export function updateTemplatesCache(template) {
+  const index = _templatesCache.findIndex(t => t.id === template.id || t.name === template.name);
+  if (index >= 0) {
+    _templatesCache[index] = template;
+  } else {
+    _templatesCache.push(template);
+  }
+}
+
+/**
+ * Remove a template from the local cache
+ * @param {string} templateId - Template ID to remove
+ */
+export function removeFromTemplatesCache(templateId) {
+  _templatesCache = _templatesCache.filter(t => t.id !== templateId);
 }
 
 export function getTemplate(id) {
@@ -461,150 +487,78 @@ export function reorderTemplate(templateId, newIndex) {
   return order;
 }
 
-export function createTemplate(name, entries, workflowInfo = null) {
-  const templates = getTemplates();
-  const now = new Date().toISOString();
-  const hash = computeEntriesHash(entries);
+// Note: createTemplate and updateTemplate have been replaced by
+// createTemplateFileOnly and updateTemplateFileOnly for server-side storage
 
-  const template = {
-    id: generateId(),
-    name,
-    createdAt: now,
-    updatedAt: now,
-    // Workflow linking - associates this template with a specific workflow
-    workflowId: workflowInfo?.id || null,
-    workflowName: workflowInfo?.name || null,
-    versions: [{
-      id: generateId(),
-      timestamp: now,
-      hash,
-      entries
-    }],
-    currentVersionIndex: 0,
-  };
+/**
+ * Delete a template from file storage and cache
+ * @param {string} id - Template ID to delete
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteTemplate(id) {
+  const template = getTemplate(id);
 
-  templates.push(template);
-
-  // Check if save actually succeeded - don't return template if it didn't persist
-  if (!saveTemplates(templates)) {
-    console.error(`Alexandria: Failed to persist template "${name}" - localStorage may be full`);
-    return null;
-  }
-
-  // Also save to file storage (async, don't await)
-  saveTemplateToFile(template).then(success => {
-    if (success && isDebugEnabled()) {
-      console.log(`Alexandria: Template "${name}" also saved to file storage`);
-    }
-  });
-
-  if (isDebugEnabled()) {
-    console.log(`Alexandria: Created template "${name}" for workflow "${workflowInfo?.name || 'unknown'}" with ${entries.length} entries`);
-  }
-
-  return template;
-}
-
-export function updateTemplate(id, entries) {
-  const templates = getTemplates();
-  const index = templates.findIndex(t => t.id === id);
-
-  if (index === -1) {
-    console.warn(`Alexandria: Template ${id} not found for update`);
-    return null;
-  }
-
-  const template = templates[index];
-  const newHash = computeEntriesHash(entries);
-  const currentVersion = template.versions[template.currentVersionIndex];
-
-  // Skip if content unchanged (diff detection)
-  if (currentVersion && currentVersion.hash === newHash) {
-    if (isDebugEnabled()) {
-      console.log(`Alexandria: Template "${template.name}" unchanged, skipping save`);
-    }
-    return template;
-  }
-
-  const now = new Date().toISOString();
-  template.versions.push({
-    id: generateId(),
-    timestamp: now,
-    hash: newHash,
-    entries
-  });
-  template.currentVersionIndex = template.versions.length - 1;
-  template.updatedAt = now;
-
-  applyRetention(template);
-  templates[index] = template;
-
-  // Check if save actually succeeded
-  if (!saveTemplates(templates)) {
-    console.error(`Alexandria: Failed to persist template update - localStorage may be full`);
-    return null;
-  }
-
-  // Also save to file storage (async, don't await)
-  saveTemplateToFile(template).then(success => {
-    if (success && isDebugEnabled()) {
-      console.log(`Alexandria: Template "${template.name}" also updated in file storage`);
-    }
-  });
-
-  if (isDebugEnabled()) {
-    console.log(`Alexandria: Updated template "${template.name}" (v${template.versions.length})`);
-  }
-
-  return template;
-}
-
-export function deleteTemplate(id) {
-  const templates = getTemplates();
-  const index = templates.findIndex(t => t.id === id);
-
-  if (index === -1) {
+  if (!template) {
     return false;
   }
 
-  const name = templates[index].name;
-  templates.splice(index, 1);
-  const success = saveTemplates(templates);
+  const name = template.name;
+
+  // Delete from file storage
+  const success = await deleteTemplateFromFile(name);
 
   if (success) {
-    // Also delete from file storage (async, don't await)
-    deleteTemplateFromFile(name).then(fileSuccess => {
-      if (fileSuccess && isDebugEnabled()) {
-        console.log(`Alexandria: Template "${name}" also deleted from file storage`);
-      }
-    });
+    // Remove from local cache
+    removeFromTemplatesCache(id);
 
     if (isDebugEnabled()) {
       console.log(`Alexandria: Deleted template "${name}"`);
     }
+  } else {
+    console.error(`Alexandria: Failed to delete template "${name}" from file storage`);
   }
 
   return success;
 }
 
-export function renameTemplate(id, newName) {
-  const templates = getTemplates();
-  const index = templates.findIndex(t => t.id === id);
+/**
+ * Rename a template in file storage and cache
+ * @param {string} id - Template ID
+ * @param {string} newName - New template name
+ * @returns {Promise<Object|null>} Updated template or null
+ */
+export async function renameTemplate(id, newName) {
+  const template = getTemplate(id);
 
-  if (index === -1) {
+  if (!template) {
     return null;
   }
 
-  const oldName = templates[index].name;
-  templates[index].name = newName;
-  templates[index].updatedAt = new Date().toISOString();
-  saveTemplates(templates);
+  const oldName = template.name;
 
-  if (isDebugEnabled()) {
-    console.log(`Alexandria: Renamed template "${oldName}" to "${newName}"`);
+  // Delete old file
+  await deleteTemplateFromFile(oldName);
+
+  // Update template
+  template.name = newName;
+  template.updatedAt = new Date().toISOString();
+
+  // Save with new name
+  const success = await saveTemplateToFile(template);
+
+  if (success) {
+    // Update cache
+    updateTemplatesCache(template);
+
+    if (isDebugEnabled()) {
+      console.log(`Alexandria: Renamed template "${oldName}" to "${newName}"`);
+    }
+
+    return template;
   }
 
-  return templates[index];
+  console.error(`Alexandria: Failed to rename template "${oldName}" to "${newName}"`);
+  return null;
 }
 
 /**
@@ -742,20 +696,26 @@ export function getWorkflowList() {
  * Update workflow info for a template
  * @param {string} templateId - Template ID
  * @param {Object} workflowInfo - { id, name } workflow info
- * @returns {Object|null} Updated template or null
+ * @returns {Promise<Object|null>} Updated template or null
  */
-export function updateTemplateWorkflow(templateId, workflowInfo) {
-  const templates = getTemplates();
-  const index = templates.findIndex(t => t.id === templateId);
+export async function updateTemplateWorkflow(templateId, workflowInfo) {
+  const template = getTemplate(templateId);
 
-  if (index === -1) return null;
+  if (!template) return null;
 
-  templates[index].workflowId = workflowInfo?.id || null;
-  templates[index].workflowName = workflowInfo?.name || null;
-  templates[index].updatedAt = new Date().toISOString();
+  template.workflowId = workflowInfo?.id || null;
+  template.workflowName = workflowInfo?.name || null;
+  template.updatedAt = new Date().toISOString();
 
-  saveTemplates(templates);
-  return templates[index];
+  // Save to file storage
+  const success = await saveTemplateToFile(template);
+  if (success) {
+    updateTemplatesCache(template);
+    return template;
+  }
+
+  console.error(`Alexandria: Failed to update workflow for template "${template.name}"`);
+  return null;
 }
 
 // ============ Import/Export ============
@@ -850,7 +810,7 @@ export function exportAll() {
   };
 }
 
-export function importAll(data, rawSize = 0) {
+export async function importAll(data, rawSize = 0) {
   try {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid import data: not an object');
@@ -864,26 +824,25 @@ export function importAll(data, rawSize = 0) {
     let importedCount = 0;
     let skippedCount = 0;
 
-    // Validate and import templates
+    // Validate and import templates to file storage
     if (data.templates && Array.isArray(data.templates)) {
       if (data.templates.length > IMPORT_LIMITS.maxTemplates) {
         console.warn(`Alexandria: Import has ${data.templates.length} templates, limiting to ${IMPORT_LIMITS.maxTemplates}`);
       }
 
-      const validTemplates = [];
       for (const template of data.templates.slice(0, IMPORT_LIMITS.maxTemplates)) {
         const validated = validateTemplate(template);
         if (validated) {
-          validTemplates.push(validated);
-          importedCount++;
+          // Save each template to file storage
+          const success = await saveTemplateToFile(validated);
+          if (success) {
+            updateTemplatesCache(validated);
+            importedCount++;
+          } else {
+            skippedCount++;
+          }
         } else {
           skippedCount++;
-        }
-      }
-
-      if (validTemplates.length > 0) {
-        if (!saveTemplates(validTemplates)) {
-          throw new Error('Failed to save imported templates - storage may be full');
         }
       }
     }
@@ -940,6 +899,116 @@ export function downloadExport(filename = 'alexandria_templates.json') {
   URL.revokeObjectURL(url);
 
   console.log(`Alexandria: Exported to ${filename}`);
+}
+
+// ============ File-Only Storage Functions ============
+// Used when storage_mode is "file" - bypasses localStorage entirely
+
+/**
+ * Create a template in file storage
+ * @param {string} name - Template name
+ * @param {Array} entries - Template entries
+ * @param {Object} workflowInfo - Optional workflow info
+ * @returns {Promise<Object|null>} Created template or null
+ */
+export async function createTemplateFileOnly(name, entries, workflowInfo = null) {
+  const now = new Date().toISOString();
+  const hash = computeEntriesHash(entries);
+
+  const template = {
+    id: generateId(),
+    name,
+    createdAt: now,
+    updatedAt: now,
+    workflowId: workflowInfo?.id || null,
+    workflowName: workflowInfo?.name || null,
+    versions: [{
+      id: generateId(),
+      timestamp: now,
+      hash,
+      entries
+    }],
+    currentVersionIndex: 0,
+  };
+
+  const success = await saveTemplateToFile(template);
+  if (!success) {
+    console.error(`Alexandria: Failed to save template "${name}" to file storage`);
+    return null;
+  }
+
+  // Update local cache
+  updateTemplatesCache(template);
+
+  if (isDebugEnabled()) {
+    console.log(`Alexandria: Created template "${name}" in file storage with ${entries.length} entries`);
+  }
+
+  return template;
+}
+
+/**
+ * Update a template in file storage
+ * @param {string} name - Template name to update
+ * @param {Array} entries - New entries
+ * @returns {Promise<Object|null>} Updated template or null
+ */
+export async function updateTemplateFileOnly(name, entries) {
+  // Load existing template from file storage
+  const fileTemplates = await loadTemplatesFromFiles();
+  const existing = fileTemplates.find(t => t.name === name);
+
+  if (!existing) {
+    console.warn(`Alexandria: Template "${name}" not found in file storage for update`);
+    return null;
+  }
+
+  const newHash = computeEntriesHash(entries);
+  const currentVersion = existing.versions?.[existing.currentVersionIndex];
+
+  // Skip if content unchanged
+  if (currentVersion && currentVersion.hash === newHash) {
+    if (isDebugEnabled()) {
+      console.log(`Alexandria: Template "${name}" unchanged in file storage, skipping`);
+    }
+    return existing;
+  }
+
+  const now = new Date().toISOString();
+  existing.versions = existing.versions || [];
+  existing.versions.push({
+    id: generateId(),
+    timestamp: now,
+    hash: newHash,
+    entries
+  });
+  existing.currentVersionIndex = existing.versions.length - 1;
+  existing.updatedAt = now;
+
+  const success = await saveTemplateToFile(existing);
+  if (!success) {
+    console.error(`Alexandria: Failed to update template "${name}" in file storage`);
+    return null;
+  }
+
+  // Update local cache
+  updateTemplatesCache(existing);
+
+  if (isDebugEnabled()) {
+    console.log(`Alexandria: Updated template "${name}" in file storage (v${existing.versions.length})`);
+  }
+
+  return existing;
+}
+
+/**
+ * Get a template by name from file storage
+ * @param {string} name - Template name
+ * @returns {Promise<Object|null>} Template or null
+ */
+export async function getTemplateByNameFromFiles(name) {
+  const templates = await loadTemplatesFromFiles();
+  return templates.find(t => t.name === name) || null;
 }
 
 // Re-export utilities that other modules may need

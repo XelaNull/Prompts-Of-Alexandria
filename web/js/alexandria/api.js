@@ -143,9 +143,9 @@ export function createGlobalAPI() {
     /**
      * Save current detected prompts as a template
      * @param {string} name - Template name
-     * @returns {Object|null} Created template or null
+     * @returns {Promise<Object|null>} Created template or null
      */
-    saveTemplate(name) {
+    async saveTemplate(name) {
       // Input validation
       if (typeof name !== 'string' || name.trim().length === 0) {
         console.error('Alexandria: saveTemplate requires a non-empty string name');
@@ -159,7 +159,9 @@ export function createGlobalAPI() {
         console.warn('Alexandria: No prompts to save');
         return null;
       }
-      return Storage.createTemplate(sanitizedName, entries);
+
+      const workflowInfo = Detection.getWorkflowIdentity();
+      return Storage.createTemplateFileOnly(sanitizedName, entries, workflowInfo);
     },
 
     /**
@@ -192,7 +194,7 @@ export function createGlobalAPI() {
     // Import/Export
     exportData: () => Storage.exportAll(),
     downloadExport: () => Storage.downloadExport(),
-    importData: (data) => Storage.importAll(data),
+    importData: async (data) => Storage.importAll(data),
 
     // Settings
     getSettings: () => Storage.getSettings(),

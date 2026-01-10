@@ -289,7 +289,7 @@ export function toggle() {
  * Open the panel
  * @param {string} [mode='landing'] - Initial mode: 'landing', 'create', or 'load'
  */
-export function open(mode = 'landing') {
+export async function open(mode = 'landing') {
   if (panel) panel.remove();
   loadSelections();
 
@@ -310,6 +310,9 @@ export function open(mode = 'landing') {
   if (mode !== 'load') {
     selectedTemplateId = null;
   }
+
+  // Load templates from server (ensures cross-PC access)
+  await Storage.refreshTemplatesFromServer();
 
   panel = createPanel();
   document.body.appendChild(panel);
@@ -2787,13 +2790,13 @@ function importTemplates() {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const rawData = event.target.result;
         const data = JSON.parse(rawData);
 
         // Pass file size for additional validation
-        const result = Storage.importAll(data, rawData.length);
+        const result = await Storage.importAll(data, rawData.length);
 
         if (result.success) {
           if (result.skipped > 0) {
@@ -2884,19 +2887,23 @@ function showSaveDialog(entries, workflowInfo) {
   modal.querySelector('[data-action="cancel"]').onclick = () => modal.remove();
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-  saveBtn.onclick = () => {
+  saveBtn.onclick = async () => {
     const name = input.value.trim();
     if (!name) {
       input.classList.add('alexandria-input-error');
       return;
     }
 
-    const existing = Storage.getTemplateByName(name);
+    // Disable button while saving
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const existing = await Storage.getTemplateByNameFromFiles(name);
     if (existing) {
-      Storage.updateTemplate(existing.id, entries);
+      await Storage.updateTemplateFileOnly(name, entries);
       showToast(`Template "${name}" updated!`);
     } else {
-      Storage.createTemplate(name, entries, workflowInfo);
+      await Storage.createTemplateFileOnly(name, entries, workflowInfo);
       showToast(`Template "${name}" saved!`);
     }
     modal.remove();
@@ -2942,14 +2949,14 @@ function showRenameDialog(templateId) {
   modal.querySelector('[data-action="cancel"]').onclick = () => modal.remove();
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-  modal.querySelector('[data-action="rename"]').onclick = () => {
+  modal.querySelector('[data-action="rename"]').onclick = async () => {
     const newName = input.value.trim();
     if (!newName) {
       input.classList.add('alexandria-input-error');
       return;
     }
 
-    Storage.renameTemplate(templateId, newName);
+    await Storage.renameTemplate(templateId, newName);
     modal.remove();
     showToast(`Template renamed to "${newName}"`);
     refresh();
@@ -2994,8 +3001,8 @@ function confirmDeleteTemplate(templateId) {
   modal.querySelector('[data-action="cancel"]').onclick = () => modal.remove();
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-  modal.querySelector('[data-action="delete"]').onclick = () => {
-    Storage.deleteTemplate(templateId);
+  modal.querySelector('[data-action="delete"]').onclick = async () => {
+    await Storage.deleteTemplate(templateId);
     if (selectedTemplateId === templateId) {
       selectedTemplateId = null;
     }
