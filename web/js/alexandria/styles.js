@@ -204,6 +204,7 @@ const CSS = `
   .alexandria-landing {
     display: flex;
     flex: 1;
+    flex-wrap: wrap;
     gap: 20px;
     padding: 40px 30px;
     justify-content: center;
@@ -233,6 +234,26 @@ const CSS = `
     border-color: var(--alexandria-border);
     background: var(--alexandria-bg-secondary);
     transform: none;
+  }
+  .alexandria-landing-card-secondary {
+    flex-basis: 100%;
+    max-width: 100%;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
+  .alexandria-landing-card-secondary .alexandria-landing-icon {
+    font-size: 28px;
+    margin-bottom: 0;
+  }
+  .alexandria-landing-card-secondary .alexandria-landing-title {
+    margin-bottom: 2px;
+    font-size: 14px;
+  }
+  .alexandria-landing-card-secondary .alexandria-landing-desc {
+    font-size: 11px;
   }
   .alexandria-landing-icon {
     font-size: 40px;
@@ -727,6 +748,66 @@ const CSS = `
   .alexandria-widget-actions {
     display: flex;
     gap: 4px;
+  }
+
+  /* ============ Configure Mode - Override Controls ============ */
+  .alexandria-widget-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .alexandria-widget.widget-override {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 2px solid var(--alexandria-info);
+  }
+  .alexandria-override-controls {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+  }
+  .alexandria-override-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid var(--alexandria-border);
+    background: var(--alexandria-bg-tertiary);
+    color: var(--alexandria-text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .alexandria-override-btn:hover {
+    background: var(--alexandria-bg-secondary);
+    color: var(--alexandria-text);
+  }
+  .alexandria-override-btn.active.include {
+    background: rgba(74, 222, 128, 0.2);
+    border-color: var(--alexandria-success);
+    color: var(--alexandria-success);
+  }
+  .alexandria-override-btn.active.auto {
+    background: var(--alexandria-bg-secondary);
+    border-color: var(--alexandria-text-muted);
+    color: var(--alexandria-text);
+  }
+  .alexandria-override-btn.active.exclude {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--alexandria-danger);
+    color: var(--alexandria-danger);
+  }
+  .alexandria-node.has-override {
+    border-left: 2px solid var(--alexandria-info);
+  }
+  .alexandria-badge.badge-override {
+    background: rgba(96, 165, 250, 0.2);
+    color: var(--alexandria-info);
+  }
+  .alexandria-node-type-label {
+    font-size: 11px;
+    color: var(--alexandria-text-muted);
+    font-style: italic;
+    margin-left: auto;
+    padding-right: 8px;
   }
 
   /* ============ Preview ============ */

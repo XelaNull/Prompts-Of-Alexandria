@@ -19,7 +19,7 @@ let selectedWidgets = new Map();
 let selectedTemplateId = null;
 let selectedVersionIndex = null; // null = use template's currentVersionIndex (latest)
 let activeTab = 'templates';
-// UI mode: 'landing', 'create', 'load'
+// UI mode: 'landing', 'create', 'load', 'configure'
 let uiMode = 'landing';
 // Track if version history is expanded
 let versionHistoryExpanded = false;
@@ -304,6 +304,13 @@ function renderPanelContent(panelEl) {
               : 'No templates saved yet'}
           </div>
         </div>
+        <div class="alexandria-landing-card alexandria-landing-card-secondary" data-action="go-configure">
+          <div class="alexandria-landing-icon">⚙️</div>
+          <div class="alexandria-landing-title">Configure Detection</div>
+          <div class="alexandria-landing-desc">
+            Customize which widgets are included or excluded from prompt saves
+          </div>
+        </div>
       </div>
       <div class="alexandria-landing-footer">
         <button class="alexandria-btn-small" data-action="import">Import Templates</button>
@@ -385,6 +392,45 @@ function renderPanelContent(panelEl) {
     `;
     attachLoadListeners(panelEl);
     renderLoadContent(panelEl);
+
+  } else if (uiMode === 'configure') {
+    // Configure mode: Browse all modules and set manual include/exclude overrides
+    panelEl.className = 'alexandria-panel alexandria-panel-wide';
+    const manualSelections = Storage.getManualSelections();
+    const overrideCount = Object.keys(manualSelections).length;
+
+    panelEl.innerHTML = `
+      <div class="alexandria-header">
+        <div class="alexandria-title">
+          <button class="alexandria-back-btn" data-action="go-landing">←</button>
+          <span class="alexandria-icon">⚙️</span>
+          Configure Detection
+        </div>
+        <button class="alexandria-close">&times;</button>
+      </div>
+      <div class="alexandria-toolbar">
+        <div class="alexandria-search">
+          <input type="text" placeholder="Search nodes..." class="alexandria-search-input" />
+        </div>
+        <div class="alexandria-filters">
+          <button class="alexandria-filter-btn ${filterType === 'all' ? 'active' : ''}" data-filter="all">All Widgets</button>
+          <button class="alexandria-filter-btn ${filterType === 'detected' ? 'active' : ''}" data-filter="detected">Detected Only</button>
+          <button class="alexandria-filter-btn ${filterType === 'overrides' ? 'active' : ''}" data-filter="overrides">Overrides Only</button>
+        </div>
+      </div>
+      <div class="alexandria-content"></div>
+      <div class="alexandria-footer">
+        <div class="alexandria-status">
+          <span class="alexandria-status-text">${overrideCount} manual override${overrideCount !== 1 ? 's' : ''} configured</span>
+        </div>
+        <div class="alexandria-actions">
+          <button class="alexandria-btn alexandria-btn-secondary" data-action="clear-overrides" ${overrideCount === 0 ? 'disabled' : ''}>Clear All Overrides</button>
+          <button class="alexandria-btn alexandria-btn-primary" data-action="done">Done</button>
+        </div>
+      </div>
+    `;
+    attachConfigureListeners(panelEl);
+    renderConfigureContent(panelEl);
   }
 
   // Common: close button
@@ -407,6 +453,11 @@ function attachLandingListeners(panelEl) {
       renderPanelContent(panelEl);
     };
   }
+
+  panelEl.querySelector('[data-action="go-configure"]').onclick = () => {
+    uiMode = 'configure';
+    renderPanelContent(panelEl);
+  };
 
   panelEl.querySelector('[data-action="import"]').onclick = importTemplates;
   const exportBtn = panelEl.querySelector('[data-action="export"]');
@@ -477,6 +528,312 @@ function updateCreateStatusBar(panelEl) {
   } else {
     statusText.textContent = `${selectedCount} prompt${selectedCount !== 1 ? 's' : ''} selected — ready to save`;
   }
+}
+
+/**
+ * Attach listeners for configure mode
+ */
+function attachConfigureListeners(panelEl) {
+  panelEl.querySelector('[data-action="go-landing"]').onclick = () => {
+    uiMode = 'landing';
+    renderPanelContent(panelEl);
+  };
+
+  // Search
+  const searchInput = panelEl.querySelector('.alexandria-search-input');
+  searchInput.oninput = (e) => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      searchQuery = e.target.value.toLowerCase();
+      renderConfigureContent(panelEl);
+    }, SEARCH_DEBOUNCE_MS);
+  };
+
+  // Filters
+  panelEl.querySelectorAll('.alexandria-filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      panelEl.querySelectorAll('.alexandria-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterType = btn.dataset.filter;
+      renderConfigureContent(panelEl);
+    };
+  });
+
+  // Clear all overrides
+  panelEl.querySelector('[data-action="clear-overrides"]').onclick = () => {
+    if (confirm('Clear all manual detection overrides?')) {
+      Storage.saveManualSelections({});
+      renderConfigureContent(panelEl);
+      updateConfigureStatusBar(panelEl);
+    }
+  };
+
+  // Done button
+  panelEl.querySelector('[data-action="done"]').onclick = () => close();
+}
+
+/**
+ * Render content for configure mode
+ */
+function renderConfigureContent(panelEl) {
+  const content = panelEl.querySelector('.alexandria-content');
+  content.innerHTML = renderConfigureNodeList();
+  attachConfigureNodeListListeners(panelEl);
+  updateConfigureStatusBar(panelEl);
+}
+
+/**
+ * Update status bar for configure mode
+ */
+function updateConfigureStatusBar(panelEl) {
+  const statusText = panelEl.querySelector('.alexandria-status-text');
+  const clearBtn = panelEl.querySelector('[data-action="clear-overrides"]');
+  const manualSelections = Storage.getManualSelections();
+  const overrideCount = Object.keys(manualSelections).length;
+
+  statusText.textContent = `${overrideCount} manual override${overrideCount !== 1 ? 's' : ''} configured`;
+  clearBtn.disabled = overrideCount === 0;
+}
+
+/**
+ * Render node list for configure mode (with override controls)
+ */
+function renderConfigureNodeList() {
+  let nodes = Detection.getAllWorkflowWidgets();
+  const manualSelections = Storage.getManualSelections();
+
+  // Filter by search
+  if (searchQuery) {
+    nodes = nodes.filter(node => {
+      const str = `${node.title} ${node.type}`.toLowerCase();
+      return str.includes(searchQuery) ||
+        node.widgets.some(w => w.name.toLowerCase().includes(searchQuery));
+    });
+  }
+
+  // Filter by type
+  if (filterType === 'detected') {
+    nodes = nodes.filter(n => n.widgets.some(w => w.isDetected));
+  } else if (filterType === 'overrides') {
+    nodes = nodes.filter(n => n.widgets.some(w => {
+      const key = `${n.type}:${w.name}`;
+      return key in manualSelections;
+    }));
+  }
+
+  if (nodes.length === 0) {
+    if (filterType === 'overrides') {
+      return `
+        <div class="alexandria-empty">
+          <div class="alexandria-empty-icon">⚙️</div>
+          <div class="alexandria-empty-text">No overrides configured</div>
+          <div class="alexandria-empty-hint">Use the toggle buttons to always include or exclude specific widgets</div>
+        </div>
+      `;
+    }
+    return `
+      <div class="alexandria-empty">
+        <div class="alexandria-empty-icon">📭</div>
+        <div class="alexandria-empty-text">No nodes found</div>
+        <div class="alexandria-empty-hint">${searchQuery ? 'Try a different search term' : 'Add nodes to your workflow'}</div>
+      </div>
+    `;
+  }
+
+  // Group nodes by canvas group
+  const groups = new Map();
+  for (const node of nodes) {
+    const groupKey = node.canvasGroup || '(Ungrouped)';
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, []);
+    }
+    groups.get(groupKey).push(node);
+  }
+
+  // Auto-collapse groups that have no detected prompts or overrides
+  for (const [groupKey, groupNodes] of groups) {
+    const hasRelevant = groupNodes.some(n => n.widgets.some(w => {
+      const key = `${n.type}:${w.name}`;
+      return w.isDetected || key in manualSelections;
+    }));
+    if (!hasRelevant && !userExpandedGroups.has(groupKey)) {
+      collapsedGroups.add(groupKey);
+    }
+  }
+
+  // Render
+  const totalNodes = nodes.length;
+  const allCollapsed = nodes.every(n => collapsedNodes.has(n.id));
+  let html = `
+    <div class="alexandria-collapse-controls">
+      <a href="#" class="alexandria-collapse-link" data-action="${allCollapsed ? 'expand-all' : 'collapse-all'}">
+        ${allCollapsed ? '▼ Expand All' : '▲ Collapse All'}
+      </a>
+    </div>
+  `;
+
+  for (const [groupType, groupNodes] of groups) {
+    const isGroupCollapsed = collapsedGroups.has(groupType);
+    const detectedCount = groupNodes.filter(n => n.widgets.some(w => w.isDetected)).length;
+    const overrideCount = groupNodes.filter(n => n.widgets.some(w => {
+      const key = `${n.type}:${w.name}`;
+      return key in manualSelections;
+    })).length;
+
+    html += `
+      <div class="alexandria-group ${isGroupCollapsed ? 'collapsed' : ''}">
+        <div class="alexandria-group-header" data-group="${escapeHtml(groupType)}">
+          <span class="alexandria-collapse-icon">${isGroupCollapsed ? '▶' : '▼'}</span>
+          <span class="alexandria-group-title">${escapeHtml(groupType)}</span>
+          <span class="alexandria-group-count">${groupNodes.length} node${groupNodes.length !== 1 ? 's' : ''}</span>
+          ${detectedCount > 0 ? `<span class="alexandria-badge badge-detected">${detectedCount} detected</span>` : ''}
+          ${overrideCount > 0 ? `<span class="alexandria-badge badge-override">${overrideCount} override${overrideCount !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+        <div class="alexandria-group-content" style="${isGroupCollapsed ? 'display:none;' : ''}">
+          ${groupNodes.map(node => renderConfigureNode(node, manualSelections)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+/**
+ * Render a node card for configure mode
+ */
+function renderConfigureNode(node, manualSelections) {
+  const hasDetected = node.widgets.some(w => w.isDetected);
+  const hasOverride = node.widgets.some(w => {
+    const key = `${node.type}:${w.name}`;
+    return key in manualSelections;
+  });
+  const isBypassed = node.mode === 2 || node.mode === 4;
+  const isNodeCollapsed = collapsedNodes.has(node.id);
+
+  return `
+    <div class="alexandria-node ${hasDetected ? 'has-detected' : ''} ${hasOverride ? 'has-override' : ''} ${isBypassed ? 'alexandria-node-bypassed' : ''} ${isNodeCollapsed ? 'collapsed' : ''}">
+      <div class="alexandria-node-header" data-node-id="${node.id}">
+        <span class="alexandria-collapse-icon">${isNodeCollapsed ? '▶' : '▼'}</span>
+        <span class="alexandria-node-icon">📦</span>
+        <span class="alexandria-node-title">${escapeHtml(node.title)}</span>
+        <span class="alexandria-node-id">#${node.id}</span>
+        <span class="alexandria-node-type-label">${escapeHtml(node.type)}</span>
+        ${isBypassed ? '<span class="alexandria-badge badge-bypassed">Bypassed</span>' : ''}
+        ${hasDetected ? '<span class="alexandria-badge badge-detected">Detected</span>' : ''}
+        ${hasOverride ? '<span class="alexandria-badge badge-override">Override</span>' : ''}
+      </div>
+      <div class="alexandria-node-widgets" style="${isNodeCollapsed ? 'display:none;' : ''}">
+        ${node.widgets.map(w => renderConfigureWidget(node, w, manualSelections)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render a widget row for configure mode with override controls
+ */
+function renderConfigureWidget(node, widget, manualSelections) {
+  const key = `${node.type}:${widget.name}`;
+  const override = manualSelections[key];
+  const preview = getValuePreview(widget.value);
+
+  // Determine current state: 'include', 'exclude', or 'auto'
+  let state = 'auto';
+  if (override === true) state = 'include';
+  else if (override === false) state = 'exclude';
+
+  return `
+    <div class="alexandria-widget ${widget.isDetected ? 'widget-detected' : ''} ${state !== 'auto' ? 'widget-override' : ''}">
+      <div class="alexandria-widget-info">
+        <span class="alexandria-widget-name">${escapeHtml(widget.name)}</span>
+        ${widget.isDetected ? `<span class="alexandria-confidence">${widget.confidence}% - ${METHOD_LABELS[widget.method] || widget.method}</span>` : ''}
+      </div>
+      <div class="alexandria-widget-value">${escapeHtml(preview)}</div>
+      <div class="alexandria-override-controls">
+        <button class="alexandria-override-btn ${state === 'include' ? 'active include' : ''}"
+          data-node-type="${escapeHtml(node.type)}"
+          data-widget-name="${escapeHtml(widget.name)}"
+          data-override="include"
+          title="Always include this widget in saves">✓ Include</button>
+        <button class="alexandria-override-btn ${state === 'auto' ? 'active auto' : ''}"
+          data-node-type="${escapeHtml(node.type)}"
+          data-widget-name="${escapeHtml(widget.name)}"
+          data-override="auto"
+          title="Use automatic detection">Auto</button>
+        <button class="alexandria-override-btn ${state === 'exclude' ? 'active exclude' : ''}"
+          data-node-type="${escapeHtml(node.type)}"
+          data-widget-name="${escapeHtml(widget.name)}"
+          data-override="exclude"
+          title="Never include this widget in saves">✗ Exclude</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Attach listeners for configure node list
+ */
+function attachConfigureNodeListListeners(panelEl) {
+  // Collapse all link
+  const collapseLink = panelEl.querySelector('.alexandria-collapse-link');
+  if (collapseLink) {
+    collapseLink.onclick = (e) => {
+      e.preventDefault();
+      const allNodes = Detection.getAllWorkflowWidgets();
+      if (collapseLink.dataset.action === 'collapse-all') {
+        allNodes.forEach(n => collapsedNodes.add(n.id));
+      } else {
+        collapsedNodes.clear();
+      }
+      renderConfigureContent(panelEl);
+    };
+  }
+
+  // Group headers
+  panelEl.querySelectorAll('.alexandria-group-header[data-group]').forEach(header => {
+    header.onclick = () => {
+      const groupType = header.dataset.group;
+      if (collapsedGroups.has(groupType)) {
+        collapsedGroups.delete(groupType);
+        userExpandedGroups.add(groupType);
+      } else {
+        collapsedGroups.add(groupType);
+        userExpandedGroups.delete(groupType);
+      }
+      renderConfigureContent(panelEl);
+    };
+  });
+
+  // Node headers
+  panelEl.querySelectorAll('.alexandria-node-header[data-node-id]').forEach(header => {
+    header.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      const nodeId = parseInt(header.dataset.nodeId, 10);
+      if (collapsedNodes.has(nodeId)) {
+        collapsedNodes.delete(nodeId);
+      } else {
+        collapsedNodes.add(nodeId);
+      }
+      renderConfigureContent(panelEl);
+    };
+  });
+
+  // Override buttons
+  panelEl.querySelectorAll('.alexandria-override-btn').forEach(btn => {
+    btn.onclick = () => {
+      const nodeType = btn.dataset.nodeType;
+      const widgetName = btn.dataset.widgetName;
+      const overrideType = btn.dataset.override;
+
+      let value = null; // auto = remove override
+      if (overrideType === 'include') value = true;
+      else if (overrideType === 'exclude') value = false;
+
+      Storage.setManualSelection(nodeType, widgetName, value);
+      renderConfigureContent(panelEl);
+    };
+  });
 }
 
 /**

@@ -136,6 +136,11 @@ export function addControlNodeWidgets(node) {
     UI.open();
   });
 
+  // Add Configure Detection button
+  node.addWidget("button", "Configure Detection", null, () => {
+    UI.open('configure');
+  });
+
   // Style the node
   node.color = "#1a1a2e";
   node.bgcolor = "#16213e";
