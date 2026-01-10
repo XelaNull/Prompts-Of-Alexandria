@@ -2226,21 +2226,22 @@ function renderWidget(node, widget) {
 
   return `
     <div class="alexandria-widget ${widget.isDetected ? 'widget-detected' : ''}">
-      <label class="alexandria-widget-label">
-        <input type="checkbox" class="alexandria-widget-checkbox"
-          ${isSelected ? 'checked' : ''}
-          data-node-id="${node.id}"
-          data-node-type="${escapeHtml(node.type)}"
-          data-widget-name="${escapeHtml(widget.name)}" />
-        <span class="alexandria-widget-name">${escapeHtml(widget.name)}</span>
-        ${widget.isDetected ? `<span class="alexandria-confidence">${widget.confidence}%</span>` : ''}
-      </label>
-      <div class="alexandria-widget-value">${escapeHtml(preview)}</div>
-      ${widget.isDetected ? `<div class="alexandria-widget-method">${METHOD_LABELS[widget.method] || widget.method}</div>` : ''}
-      <div class="alexandria-widget-actions">
-        <button class="alexandria-btn-small" data-action="view" data-node-id="${node.id}" data-widget-name="${escapeHtml(widget.name)}">👁</button>
-        <button class="alexandria-btn-small" data-action="copy" data-node-id="${node.id}" data-widget-name="${escapeHtml(widget.name)}">📋</button>
+      <div class="alexandria-widget-row">
+        <label class="alexandria-widget-label">
+          <input type="checkbox" class="alexandria-widget-checkbox"
+            ${isSelected ? 'checked' : ''}
+            data-node-id="${node.id}"
+            data-node-type="${escapeHtml(node.type)}"
+            data-widget-name="${escapeHtml(widget.name)}" />
+          <span class="alexandria-widget-name">${escapeHtml(widget.name)}</span>
+          ${widget.isDetected ? `<span class="alexandria-confidence">${widget.confidence}% ${METHOD_LABELS[widget.method] || ''}</span>` : ''}
+        </label>
+        <div class="alexandria-widget-actions">
+          <button class="alexandria-btn-small" data-action="view" data-node-id="${node.id}" data-widget-name="${escapeHtml(widget.name)}" title="View full text">👁</button>
+          <button class="alexandria-btn-small" data-action="copy" data-node-id="${node.id}" data-widget-name="${escapeHtml(widget.name)}" title="Copy to clipboard">📋</button>
+        </div>
       </div>
+      <div class="alexandria-widget-value">${escapeHtml(preview)}</div>
     </div>
   `;
 }

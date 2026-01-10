@@ -759,10 +759,9 @@ const CSS = `
   /* ============ Widget Rows ============ */
   .alexandria-widget {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 6px;
-    padding: 6px 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 0;
     border-bottom: 1px solid var(--alexandria-border);
   }
   .alexandria-widget:last-child {
@@ -771,36 +770,43 @@ const CSS = `
   .alexandria-widget.widget-detected {
     background: rgba(233, 69, 96, 0.1);
     margin: 0 -16px;
-    padding: 10px 16px;
+    padding: 8px 16px;
+  }
+  .alexandria-widget-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
   .alexandria-widget-label {
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    min-width: 200px;
+    flex: 1;
+    min-width: 0;
   }
   .alexandria-widget-checkbox {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
     accent-color: var(--alexandria-accent);
     cursor: pointer;
   }
   .alexandria-widget-name {
     font-weight: 500;
-    font-size: 14px;
+    font-size: 13px;
   }
   .alexandria-confidence {
     padding: 2px 6px;
     background: var(--alexandria-info);
     color: white;
     border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
   }
   .alexandria-widget-value {
-    flex: 1;
-    min-width: 200px;
     padding: 6px 10px;
     background: var(--alexandria-bg-tertiary);
     border-radius: 4px;
@@ -810,17 +816,12 @@ const CSS = `
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 400px;
-  }
-  .alexandria-widget-method {
-    width: 100%;
-    font-size: 11px;
-    color: var(--alexandria-text-muted);
-    padding-left: 24px;
+    margin-left: 24px;
   }
   .alexandria-widget-actions {
     display: flex;
     gap: 4px;
+    flex-shrink: 0;
   }
 
   /* ============ Configure Mode - Override Controls ============ */
