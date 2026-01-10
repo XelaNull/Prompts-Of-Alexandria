@@ -1234,7 +1234,8 @@ function renderTemplateItem(template, showWorkflowTag = false) {
     : '';
 
   return `
-    <div class="alexandria-template-item ${isSelected ? 'selected' : ''}" data-template-id="${template.id}">
+    <div class="alexandria-template-item ${isSelected ? 'selected' : ''}" data-template-id="${template.id}" draggable="true">
+      <div class="alexandria-drag-handle" title="Drag to reorder">⋮⋮</div>
       <div class="alexandria-template-info">
         <div class="alexandria-template-name">${escapeHtml(template.name)}${workflowTag}</div>
         <div class="alexandria-template-meta">
@@ -1394,6 +1395,86 @@ function attachTemplateListeners() {
         const isHidden = content.style.display === 'none';
         content.style.display = isHidden ? 'block' : 'none';
         toggle.textContent = isHidden ? '▼' : '▶';
+      }
+    };
+  });
+
+  // Drag and drop reordering
+  attachDragDropListeners();
+}
+
+/**
+ * Attach drag and drop event listeners for template reordering
+ */
+function attachDragDropListeners() {
+  if (!panel) return;
+
+  let draggedItem = null;
+  let draggedId = null;
+
+  panel.querySelectorAll('.alexandria-template-item[draggable="true"]').forEach(item => {
+    // Drag start
+    item.ondragstart = (e) => {
+      draggedItem = item;
+      draggedId = item.dataset.templateId;
+      item.classList.add('alexandria-dragging');
+
+      // Set drag data
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedId);
+
+      // Slight delay to allow the drag image to be captured
+      setTimeout(() => {
+        item.style.opacity = '0.5';
+      }, 0);
+    };
+
+    // Drag end
+    item.ondragend = () => {
+      item.classList.remove('alexandria-dragging');
+      item.style.opacity = '';
+      draggedItem = null;
+      draggedId = null;
+
+      // Remove all drop indicators
+      panel.querySelectorAll('.alexandria-drop-indicator').forEach(el => el.remove());
+      panel.querySelectorAll('.alexandria-drag-over').forEach(el => el.classList.remove('alexandria-drag-over'));
+    };
+
+    // Drag over
+    item.ondragover = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      if (!draggedItem || item === draggedItem) return;
+
+      // Add visual indicator
+      item.classList.add('alexandria-drag-over');
+    };
+
+    // Drag leave
+    item.ondragleave = () => {
+      item.classList.remove('alexandria-drag-over');
+    };
+
+    // Drop
+    item.ondrop = (e) => {
+      e.preventDefault();
+      item.classList.remove('alexandria-drag-over');
+
+      if (!draggedId || item === draggedItem) return;
+
+      const targetId = item.dataset.templateId;
+
+      // Get all template items in the current section to find indices
+      const section = item.closest('.alexandria-template-section') || item.closest('.alexandria-sidebar');
+      const items = section ? [...section.querySelectorAll('.alexandria-template-item')] : [];
+      const targetIndex = items.findIndex(i => i.dataset.templateId === targetId);
+
+      if (targetIndex >= 0) {
+        Storage.reorderTemplate(draggedId, targetIndex);
+        refresh();
+        showToast('Template order updated');
       }
     };
   });

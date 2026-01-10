@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   TEMPLATES: 'alexandria_templates',
   MANUAL_SELECTIONS: 'alexandria_manual',
   SETTINGS: 'alexandria_settings',
+  TEMPLATE_ORDER: 'alexandria_template_order',
 };
 
 // Default settings
@@ -177,6 +178,88 @@ export function getTemplate(id) {
 
 export function getTemplateByName(name) {
   return getTemplates().find(t => t.name === name) || null;
+}
+
+// ============ Template Ordering ============
+
+/**
+ * Get the custom template order (array of template IDs)
+ * @returns {Array} Array of template IDs in custom order
+ */
+export function getTemplateOrder() {
+  return safeGet(STORAGE_KEYS.TEMPLATE_ORDER, []);
+}
+
+/**
+ * Save custom template order
+ * @param {Array} order - Array of template IDs in desired order
+ */
+export function saveTemplateOrder(order) {
+  return safeSet(STORAGE_KEYS.TEMPLATE_ORDER, order);
+}
+
+/**
+ * Get templates sorted by custom order
+ * Templates not in the order list appear at the end (by creation date)
+ * @returns {Array} Sorted templates
+ */
+export function getTemplatesSorted() {
+  const templates = getTemplates();
+  const order = getTemplateOrder();
+
+  if (order.length === 0) {
+    // No custom order, return by most recently updated
+    return [...templates].sort((a, b) =>
+      new Date(b.updatedAt) - new Date(a.updatedAt)
+    );
+  }
+
+  // Create a map for quick lookup
+  const orderMap = new Map(order.map((id, idx) => [id, idx]));
+
+  return [...templates].sort((a, b) => {
+    const aIdx = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
+    const bIdx = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+
+    if (aIdx === Infinity && bIdx === Infinity) {
+      // Both not in order, sort by date
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    }
+    return aIdx - bIdx;
+  });
+}
+
+/**
+ * Move a template to a new position in the order
+ * @param {string} templateId - Template ID to move
+ * @param {number} newIndex - New position index
+ */
+export function reorderTemplate(templateId, newIndex) {
+  const templates = getTemplates();
+  let order = getTemplateOrder();
+
+  // Initialize order with all template IDs if empty
+  if (order.length === 0) {
+    order = templates
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+      .map(t => t.id);
+  }
+
+  // Remove template from current position
+  const currentIndex = order.indexOf(templateId);
+  if (currentIndex !== -1) {
+    order.splice(currentIndex, 1);
+  }
+
+  // Insert at new position
+  order.splice(newIndex, 0, templateId);
+
+  // Clean up: remove IDs that no longer exist
+  const existingIds = new Set(templates.map(t => t.id));
+  order = order.filter(id => existingIds.has(id));
+
+  saveTemplateOrder(order);
+  return order;
 }
 
 export function createTemplate(name, entries, workflowInfo = null) {
@@ -359,29 +442,29 @@ function applyRetention(template) {
 // ============ Workflow Filtering ============
 
 /**
- * Get templates for a specific workflow
+ * Get templates for a specific workflow (respects custom order)
  * @param {string} workflowId - Workflow ID to filter by
  * @returns {Array} Templates matching the workflow
  */
 export function getTemplatesForWorkflow(workflowId) {
-  return getTemplates().filter(t => t.workflowId === workflowId);
+  return getTemplatesSorted().filter(t => t.workflowId === workflowId);
 }
 
 /**
- * Get templates NOT associated with a specific workflow
+ * Get templates NOT associated with a specific workflow (respects custom order)
  * @param {string} workflowId - Workflow ID to exclude
  * @returns {Array} Templates from other workflows
  */
 export function getTemplatesFromOtherWorkflows(workflowId) {
-  return getTemplates().filter(t => t.workflowId && t.workflowId !== workflowId);
+  return getTemplatesSorted().filter(t => t.workflowId && t.workflowId !== workflowId);
 }
 
 /**
- * Get legacy templates (those without workflow association)
+ * Get legacy templates (those without workflow association, respects custom order)
  * @returns {Array} Templates without workflowId
  */
 export function getLegacyTemplates() {
-  return getTemplates().filter(t => !t.workflowId);
+  return getTemplatesSorted().filter(t => !t.workflowId);
 }
 
 /**

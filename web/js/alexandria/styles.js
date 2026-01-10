@@ -395,9 +395,39 @@ const CSS = `
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
   }
   .alexandria-template-item:hover {
     background: var(--alexandria-bg-tertiary);
+  }
+  /* Drag handle */
+  .alexandria-drag-handle {
+    cursor: grab;
+    color: var(--alexandria-text-muted);
+    font-size: 12px;
+    letter-spacing: -2px;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+    user-select: none;
+    padding: 4px 2px;
+  }
+  .alexandria-template-item:hover .alexandria-drag-handle {
+    opacity: 0.8;
+  }
+  .alexandria-drag-handle:active {
+    cursor: grabbing;
+  }
+  /* Drag states */
+  .alexandria-template-item.alexandria-dragging {
+    opacity: 0.5;
+    background: var(--alexandria-bg-tertiary);
+  }
+  .alexandria-template-item.alexandria-drag-over {
+    border-top: 2px solid var(--alexandria-accent);
+    margin-top: -2px;
+  }
+  .alexandria-template-item.selected.alexandria-drag-over {
+    border-top-color: white;
   }
   .alexandria-template-item.selected {
     background: var(--alexandria-accent);
@@ -1114,6 +1144,13 @@ const CSS = `
   }
   .alexandria-btn-danger:hover {
     background: #dc2626;
+  }
+  /* Disabled button states */
+  .alexandria-btn:disabled,
+  .alexandria-btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
   }
   .alexandria-btn-icon {
     width: 28px;
