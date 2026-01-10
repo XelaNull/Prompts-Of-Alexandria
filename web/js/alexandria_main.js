@@ -8,78 +8,17 @@
  * @version 0.5.0
  */
 
-// ============ Debug Logging ============
-// Immediate log to confirm script is being loaded by browser
-console.log('[Alexandria] Script loading started...');
+// ComfyUI API - use new window.comfyAPI pattern (ComfyUI 1.35+)
+const { app } = window.comfyAPI?.app ?? await import("../../../scripts/app.js");
 
-// Try to get ComfyUI app - use new API if available, fallback to legacy import
-let app;
-try {
-  console.log('[Alexandria] Checking for window.comfyAPI...');
-  if (window.comfyAPI?.app) {
-    app = window.comfyAPI.app;
-    console.log('[Alexandria] Using window.comfyAPI.app (new UI pattern)');
-  } else {
-    console.log('[Alexandria] window.comfyAPI not found, trying legacy import...');
-    const module = await import("../../../scripts/app.js");
-    app = module.app;
-    console.log('[Alexandria] Using legacy import from scripts/app.js');
-  }
-  console.log('[Alexandria] App loaded successfully:', !!app);
-} catch (e) {
-  console.error('[Alexandria] CRITICAL: Failed to load ComfyUI app:', e);
-  throw e;
-}
+// Import all modules (static imports like Claude Chat uses)
+import { injectStyles, injectSidebarStyles } from "./alexandria/styles.js";
+import * as UI from "./alexandria/ui.js";
+import * as Nodes from "./alexandria/nodes.js";
+import * as Storage from "./alexandria/storage.js";
+import { installGlobalAPI } from "./alexandria/api.js";
 
-// Import all modules with logging
-console.log('[Alexandria] Importing submodules...');
-
-let injectStyles, injectSidebarStyles, UI, Nodes, Storage, installGlobalAPI;
-
-try {
-  const stylesModule = await import("./alexandria/styles.js");
-  injectStyles = stylesModule.injectStyles;
-  injectSidebarStyles = stylesModule.injectSidebarStyles;
-  console.log('[Alexandria] ✓ styles.js loaded');
-} catch (e) {
-  console.error('[Alexandria] ✗ Failed to load styles.js:', e);
-  throw e;
-}
-
-try {
-  UI = await import("./alexandria/ui.js");
-  console.log('[Alexandria] ✓ ui.js loaded');
-} catch (e) {
-  console.error('[Alexandria] ✗ Failed to load ui.js:', e);
-  throw e;
-}
-
-try {
-  Nodes = await import("./alexandria/nodes.js");
-  console.log('[Alexandria] ✓ nodes.js loaded');
-} catch (e) {
-  console.error('[Alexandria] ✗ Failed to load nodes.js:', e);
-  throw e;
-}
-
-try {
-  Storage = await import("./alexandria/storage.js");
-  console.log('[Alexandria] ✓ storage.js loaded');
-} catch (e) {
-  console.error('[Alexandria] ✗ Failed to load storage.js:', e);
-  throw e;
-}
-
-try {
-  const apiModule = await import("./alexandria/api.js");
-  installGlobalAPI = apiModule.installGlobalAPI;
-  console.log('[Alexandria] ✓ api.js loaded');
-} catch (e) {
-  console.error('[Alexandria] ✗ Failed to load api.js:', e);
-  throw e;
-}
-
-console.log('[Alexandria] All submodules loaded successfully');
+console.log('[Alexandria] Module loaded successfully');
 
 // ============ Sidebar Panel ============
 
@@ -398,25 +337,20 @@ function escapeHtml(str) {
  * Register Alexandria in ComfyUI's sidebar
  */
 function registerSidebarTab() {
-  console.log('[Alexandria] registerSidebarTab called');
-  console.log('[Alexandria] app.extensionManager exists:', !!app.extensionManager);
+  console.log('[Alexandria] Registering sidebar tab...');
 
   if (!app.extensionManager) {
-    console.log('[Alexandria] Waiting for extensionManager... (will retry in 500ms)');
+    console.log('[Alexandria] Waiting for extensionManager...');
     setTimeout(registerSidebarTab, 500);
     return;
   }
 
-  console.log('[Alexandria] extensionManager.registerSidebarTab exists:', typeof app.extensionManager.registerSidebarTab);
-
   if (typeof app.extensionManager.registerSidebarTab !== 'function') {
-    console.warn('[Alexandria] registerSidebarTab not available on extensionManager');
-    console.log('[Alexandria] extensionManager keys:', Object.keys(app.extensionManager));
+    console.warn('[Alexandria] registerSidebarTab not available');
     return;
   }
 
   try {
-    console.log('[Alexandria] Calling extensionManager.registerSidebarTab...');
     app.extensionManager.registerSidebarTab({
       id: 'alexandria',
       icon: 'pi pi-book',
@@ -424,81 +358,54 @@ function registerSidebarTab() {
       tooltip: 'Prompts of Alexandria - Quick access to templates',
       type: 'custom',
       render: (container) => {
-        console.log('[Alexandria] Sidebar render() called');
-        // Style the container
         container.style.cssText = 'height: 100%; overflow-y: auto;';
-
-        // Render sidebar content
         renderSidebarContent(container);
       },
     });
-    console.log('[Alexandria] ✓ Sidebar tab registered successfully');
+    console.log('[Alexandria] Sidebar tab registered');
   } catch (e) {
-    console.error('[Alexandria] ✗ Failed to register sidebar tab:', e);
+    console.error('[Alexandria] Failed to register sidebar tab:', e);
   }
 }
 
 // ============ Register Extension ============
 
-console.log('[Alexandria] Registering extension with ComfyUI...');
+app.registerExtension({
+  name: 'Prompts.of.Alexandria',
 
-try {
-  app.registerExtension({
-    name: 'Prompts.of.Alexandria',
+  async setup() {
+    console.log('[Alexandria] Initializing...');
 
-    async setup() {
-      console.log('[Alexandria] setup() called - initializing...');
+    // Inject CSS styles (main + sidebar)
+    injectStyles();
+    injectSidebarStyles();
 
-      try {
-        // Inject CSS styles (main + sidebar)
-        console.log('[Alexandria] Injecting styles...');
-        injectStyles();
-        injectSidebarStyles();
-        console.log('[Alexandria] ✓ Styles injected');
+    // Initialize UI
+    UI.init();
 
-        // Initialize UI
-        console.log('[Alexandria] Initializing UI...');
-        UI.init();
-        console.log('[Alexandria] ✓ UI initialized');
+    // Register sidebar tab
+    registerSidebarTab();
 
-        // Register sidebar tab
-        console.log('[Alexandria] Registering sidebar tab...');
-        registerSidebarTab();
+    // Setup WebSocket handlers for node communication
+    Nodes.setupWebSocketHandlers();
 
-        // Setup WebSocket handlers for node communication
-        console.log('[Alexandria] Setting up WebSocket handlers...');
-        Nodes.setupWebSocketHandlers();
-        console.log('[Alexandria] ✓ WebSocket handlers set up');
+    // Install global API
+    installGlobalAPI();
 
-        // Install global API
-        console.log('[Alexandria] Installing global API...');
-        installGlobalAPI();
-        console.log('[Alexandria] ✓ Global API installed (window.Alexandria available)');
+    console.log('[Alexandria] Ready');
+  },
 
-        console.log('[Alexandria] ✓ Setup complete - Ready!');
-      } catch (e) {
-        console.error('[Alexandria] ✗ Error during setup():', e);
-        throw e;
-      }
-    },
+  /**
+   * Called when a node is created
+   */
+  nodeCreated(node) {
+    if (node.comfyClass === "AlexandriaControl") {
+      Nodes.addControlNodeWidgets(node);
+    }
+    if (node.comfyClass === "AlexandriaSave") {
+      Nodes.styleSaveNode(node);
+    }
+  },
+});
 
-    /**
-     * Called when a node is created
-     */
-    nodeCreated(node) {
-      if (node.comfyClass === "AlexandriaControl") {
-        console.log('[Alexandria] AlexandriaControl node created, adding widgets');
-        Nodes.addControlNodeWidgets(node);
-      }
-      if (node.comfyClass === "AlexandriaSave") {
-        console.log('[Alexandria] AlexandriaSave node created, styling');
-        Nodes.styleSaveNode(node);
-      }
-    },
-  });
-  console.log('[Alexandria] ✓ Extension registered with ComfyUI');
-} catch (e) {
-  console.error('[Alexandria] ✗ Failed to register extension:', e);
-}
-
-console.log('[Alexandria] Module load complete');
+console.log('[Alexandria] Extension registered');
