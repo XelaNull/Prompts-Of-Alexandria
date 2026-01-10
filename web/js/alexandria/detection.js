@@ -22,6 +22,7 @@ import * as Storage from "./storage.js";
 /**
  * Known prompt node types and their prompt widget names
  * This is the most reliable detection method for common nodes
+ * NOTE: Only include user-entered widgets, NOT auto-populated ones
  */
 const KNOWN_PROMPT_NODES = {
   // Core ComfyUI
@@ -32,15 +33,26 @@ const KNOWN_PROMPT_NODES = {
   'CLIPTextEncodeFlux': ['text'],
   'CLIPTextEncodeHunyuanDiT': ['text'],
 
-  // Popular extensions
+  // Popular extensions - only user-input widgets, not auto-populated
   'WildcardEncode': ['text'],
-  'ImpactWildcardEncode': ['wildcard_text', 'populated_text'],
+  'ImpactWildcardEncode': ['wildcard_text'], // NOT populated_text (auto-generated)
+  'ImpactWildcardProcessor': ['wildcard_text'], // NOT populated_text (auto-generated)
   'easy positive': ['positive'],
   'easy negative': ['negative'],
   'CR Prompt Text': ['prompt'],
-  'ShowText|pysssss': ['text'],
   'Efficient Loader': ['positive', 'negative'],
   'Eff. Loader SDXL': ['positive', 'negative'],
+
+  // Dynamic Prompts
+  'DPRandomGenerator': ['text'],
+  'DPCombinatorialGenerator': ['text'],
+
+  // SDXL Prompt Styler
+  'SDXLPromptStyler': ['text_positive', 'text_negative'],
+
+  // Various prompt nodes
+  'PromptBuilder': ['prompt'],
+  'StringFunction|pysssss': ['text'],
 };
 
 /**
@@ -96,8 +108,117 @@ const NON_PROMPT_WIDGET_NAMES = [
   'code', 'script', 'command',
   'url', 'uri', 'link',
   'model', 'checkpoint', 'lora',
-  'output', 'input', 'result',
   'api_key', 'token', 'secret',
+];
+
+/**
+ * Widget name patterns that indicate AUTO-POPULATED content (exclude in precise mode)
+ * These are widgets that get filled automatically from other widgets or during execution
+ */
+const AUTO_POPULATED_WIDGET_PATTERNS = [
+  /^populated/i,         // populated_text, populated_prompt
+  /populated$/i,         // text_populated
+  /_populated$/i,        // wildcard_populated
+  /^output/i,            // output_text, output_string
+  /output$/i,            // text_output
+  /_output$/i,           // prompt_output
+  /_out$/i,              // text_out
+  /^result/i,            // result_text
+  /result$/i,            // text_result
+  /_result$/i,           // prompt_result
+  /^generated/i,         // generated_text
+  /generated$/i,         // text_generated
+  /^processed/i,         // processed_text
+  /processed$/i,         // text_processed
+  /^expanded/i,          // expanded_wildcards
+  /expanded$/i,          // wildcard_expanded
+  /^resolved/i,          // resolved_text
+  /resolved$/i,          // text_resolved
+  /^final_/i,            // final_prompt
+  /_final$/i,            // prompt_final
+  /^preview/i,           // preview_text
+  /preview$/i,           // text_preview
+  /^display/i,           // display_text
+  /display$/i,           // text_display
+  /^computed/i,          // computed_value
+  /computed$/i,          // value_computed
+  /^evaluated/i,         // evaluated_expression
+  /evaluated$/i,         // expression_evaluated
+  /^rendered/i,          // rendered_text
+  /rendered$/i,          // text_rendered
+  /^formatted/i,         // formatted_output
+  /formatted$/i,         // output_formatted
+  /^shown_/i,            // shown_text
+  /_shown$/i,            // text_shown
+  /^current_/i,          // current_text (often auto-updated)
+  /^last_/i,             // last_result
+  /^actual_/i,           // actual_prompt (resolved version)
+];
+
+/**
+ * Node type patterns that are OUTPUT/DISPLAY nodes (not prompt sources)
+ * These nodes display or output text rather than accepting user prompts
+ */
+const OUTPUT_NODE_TYPE_PATTERNS = [
+  /^show/i,              // ShowText, ShowAnything
+  /^display/i,           // DisplayText, DisplayString
+  /^preview/i,           // PreviewText
+  /^print/i,             // PrintText
+  /^debug/i,             // DebugText, DebugString
+  /^log/i,               // LogText
+  /^view/i,              // ViewText
+  /^output/i,            // OutputText
+  /text.*output/i,       // TextOutput
+  /string.*output/i,     // StringOutput
+  /note$/i,              // StickyNote, Note
+  /^note/i,              // NoteNode
+  /info$/i,              // TextInfo
+  /viewer$/i,            // TextViewer
+];
+
+/**
+ * Specific node types that are definitely NOT prompt sources
+ */
+const NON_PROMPT_NODE_TYPES = [
+  'ShowText|pysssss',    // Display node, not input
+  'Note',                // Sticky notes
+  'PrimitiveNode',       // Just stores values, not prompts
+  'Reroute',             // Routing node
+  'PreviewText',         // Preview display
+  'DebugPrint',          // Debug output
+];
+
+/**
+ * Node type patterns for STRING UTILITY nodes (process but don't store prompts)
+ * These pass strings through but aren't prompt sources themselves
+ */
+const STRING_UTILITY_NODE_PATTERNS = [
+  /concat/i,             // StringConcat, TextConcat, ConcatStrings
+  /join/i,               // StringJoin, JoinStrings
+  /merge/i,              // MergeStrings, TextMerge
+  /combine/i,            // CombineStrings
+  /append/i,             // AppendString
+  /prepend/i,            // PrependString
+  /replace/i,            // StringReplace, ReplaceText
+  /substitute/i,         // SubstituteText
+  /format/i,             // FormatString, StringFormat
+  /template/i,           // StringTemplate (unless it's a prompt template)
+  /split/i,              // SplitString
+  /trim/i,               // TrimString
+  /slice/i,              // SliceString
+  /substring/i,          // Substring
+  /convert/i,            // ConvertString
+  /cast/i,               // CastToString
+  /tostring/i,           // ToString
+  /parse/i,              // ParseString
+  /extract/i,            // ExtractString
+  /regex/i,              // RegexReplace, RegexMatch
+  /switch/i,             // StringSwitch, TextSwitch
+  /selector/i,           // StringSelector
+  /router/i,             // StringRouter
+  /passthrough/i,        // Passthrough
+  /pass.*through/i,      // PassThrough
+  /primitive/i,          // Primitive nodes just store values
 ];
 
 // ============ Widget Type Detection ============
@@ -538,7 +659,53 @@ export function detectAllPrompts() {
 }
 
 /**
+ * Check if a widget name indicates auto-populated content
+ * @param {string} widgetName - Widget name to check
+ * @returns {boolean} True if widget appears to be auto-populated
+ */
+function isAutoPopulatedWidget(widgetName) {
+  if (!widgetName) return false;
+  return AUTO_POPULATED_WIDGET_PATTERNS.some(pattern => pattern.test(widgetName));
+}
+
+/**
+ * Check if a node type is an output/display node
+ * @param {string} nodeType - Node type to check
+ * @returns {boolean} True if node is an output/display type
+ */
+function isOutputDisplayNode(nodeType) {
+  if (!nodeType) return false;
+  if (NON_PROMPT_NODE_TYPES.includes(nodeType)) return true;
+  return OUTPUT_NODE_TYPE_PATTERNS.some(pattern => pattern.test(nodeType));
+}
+
+/**
+ * Check if a node type is a string utility node (processes but doesn't store prompts)
+ * @param {string} nodeType - Node type to check
+ * @returns {boolean} True if node is a string utility type
+ */
+function isStringUtilityNode(nodeType) {
+  if (!nodeType) return false;
+  return STRING_UTILITY_NODE_PATTERNS.some(pattern => pattern.test(nodeType));
+}
+
+/**
+ * Check if content looks like unresolved wildcard syntax (user input)
+ * vs resolved content (auto-populated)
+ * @param {string} value - Text content to check
+ * @returns {boolean} True if contains wildcard syntax
+ */
+function containsWildcardSyntax(value) {
+  if (typeof value !== 'string') return false;
+  // Common wildcard syntaxes: {option1|option2}, __wildcard__, <wildcard>
+  return /\{[^}]+\|[^}]+\}/.test(value) ||  // {opt1|opt2}
+         /__[^_]+__/.test(value) ||          // __wildcard__
+         /\$\{[^}]+\}/.test(value);          // ${variable}
+}
+
+/**
  * Check if a value looks like a prompt (for precise mode filtering)
+ * More strict than lazy mode - requires clear prompt indicators
  * @param {*} value - Widget value to check
  * @returns {boolean} True if value appears to be a prompt
  */
@@ -546,26 +713,32 @@ function looksLikePrompt(value) {
   if (typeof value !== 'string') return false;
   const str = value.trim();
 
-  // Too short to be a prompt
-  if (str.length < 10) return false;
+  // Empty or too short - definitely not a prompt worth backing up
+  if (str.length < 5) return false;
 
-  // Contains comma-separated tags (common in prompts)
+  // Contains comma-separated tags (common in prompts) - strong signal
   const commaCount = (str.match(/,/g) || []).length;
   if (commaCount >= 2) return true;
 
-  // Contains common prompt keywords
-  const promptKeywords = /\b(masterpiece|best quality|high quality|detailed|beautiful|8k|4k|uhd|realistic|anime|portrait|landscape|photo|art|style|lighting|background|foreground|scene|character|person|woman|man|girl|boy|face|eyes|hair|dress|outfit|wearing)\b/i;
+  // Contains common prompt keywords - strong signal
+  const promptKeywords = /\b(masterpiece|best quality|high quality|detailed|beautiful|8k|4k|uhd|realistic|anime|portrait|landscape|photo|art|style|lighting|background|foreground|scene|character|person|woman|man|girl|boy|face|eyes|hair|dress|outfit|wearing|cinematic|professional|sharp focus|intricate|elegant|digital art|concept art|illustration|render|artstation)\b/i;
   if (promptKeywords.test(str)) return true;
 
-  // Contains parentheses weighting syntax like (word:1.2)
+  // Contains parentheses weighting syntax like (word:1.2) - strong signal
   if (/\([^)]+:\d+\.?\d*\)/.test(str)) return true;
 
-  // Contains angle bracket syntax like <lora:name>
+  // Contains angle bracket syntax like <lora:name> - strong signal
   if (/<[^>]+>/.test(str)) return true;
 
-  // Has multiple words (at least 3) - prompts are usually descriptive
+  // Contains wildcard syntax - user input, should backup
+  if (containsWildcardSyntax(str)) return true;
+
+  // Contains negative prompt indicators
+  if (/\b(worst quality|low quality|bad|ugly|blurry|deformed|disfigured|mutated|extra|missing|watermark|signature|text|logo)\b/i.test(str)) return true;
+
+  // Has multiple words (at least 5) and reasonable length - likely descriptive prompt
   const wordCount = str.split(/\s+/).length;
-  if (wordCount >= 5) return true;
+  if (wordCount >= 5 && str.length >= 30) return true;
 
   return false;
 }
@@ -586,11 +759,70 @@ export function getDetectedPrompts() {
   // In precise mode, apply stricter filtering
   if (mode === 'precise') {
     filtered = filtered.filter(r => {
-      // Always include high-confidence detections (known nodes, link tracing)
-      if (r.confidence >= 85) return true;
+      const nodeType = r.node?.type || '';
+      const widgetName = r.widget?.name || '';
+      const value = r.widget?.value;
 
-      // For lower confidence, check if the value looks like a prompt
-      return looksLikePrompt(r.value);
+      // === EXCLUSIONS (always filter out in precise mode) ===
+
+      // 1. Skip auto-populated widgets (populated_text, output_text, etc.)
+      if (isAutoPopulatedWidget(widgetName)) {
+        if (Storage.isDebugEnabled()) {
+          console.log(`Alexandria Precise: Excluding auto-populated widget "${widgetName}" on ${nodeType}`);
+        }
+        return false;
+      }
+
+      // 2. Skip output/display nodes (ShowText, PreviewText, etc.)
+      if (isOutputDisplayNode(nodeType)) {
+        if (Storage.isDebugEnabled()) {
+          console.log(`Alexandria Precise: Excluding output/display node ${nodeType}`);
+        }
+        return false;
+      }
+
+      // 3. Skip string utility nodes (concatenation, replace, etc.)
+      if (isStringUtilityNode(nodeType)) {
+        if (Storage.isDebugEnabled()) {
+          console.log(`Alexandria Precise: Excluding string utility node ${nodeType}`);
+        }
+        return false;
+      }
+
+      // 4. Skip empty or whitespace-only values
+      if (typeof value !== 'string' || value.trim().length === 0) {
+        if (Storage.isDebugEnabled()) {
+          console.log(`Alexandria Precise: Excluding empty widget "${widgetName}" on ${nodeType}`);
+        }
+        return false;
+      }
+
+      // === INCLUSIONS ===
+
+      // 5. Always include if detected by high-confidence methods
+      //    (link tracing to KSampler, or explicitly in KNOWN_PROMPT_NODES)
+      if (r.confidence >= 90) {
+        return true;
+      }
+
+      // 6. Include if detected by backward link tracing (85%)
+      //    This means it's actually connected to a sampler
+      if (r.method === 'backward_link_tracing') {
+        return true;
+      }
+
+      // 7. For medium confidence (80-89), require content that looks like a prompt
+      if (r.confidence >= 80) {
+        return looksLikePrompt(value);
+      }
+
+      // 8. For lower confidence, require BOTH prompt-like content AND reasonable length
+      if (looksLikePrompt(value) && value.trim().length >= 20) {
+        return true;
+      }
+
+      // Default: exclude uncertain detections
+      return false;
     });
   }
 
