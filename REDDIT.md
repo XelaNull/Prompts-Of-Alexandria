@@ -4,7 +4,7 @@
 
 ---
 
-So I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files, trying to remember which version had that perfect lighting setup. It's exhausting.
+So I got tired of organizing prompts. Juggling 15 different scene variations, copy-pasting from notepad files like a caveman, trying to remember which version had that perfect lighting setup. It's exhausting.
 
 And yeah, occasionally losing a prompt when you accidentally paste over it doesn't help either.
 
