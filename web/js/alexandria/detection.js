@@ -189,6 +189,17 @@ const NON_PROMPT_NODE_TYPES = [
 ];
 
 /**
+ * Specific node:widget combinations that should NEVER be detected as prompts
+ * These are known auto-populated widgets that get their value from other widgets
+ * Format: "NodeType:widgetName"
+ */
+const NEVER_DETECT_WIDGETS = [
+  'ImpactWildcardProcessor:populated_text',  // Auto-generated from wildcard_text
+  'ImpactWildcardEncode:populated_text',     // Auto-generated from wildcard_text
+  'WildcardEncode:populated_text',           // Auto-generated from wildcard_text
+];
+
+/**
  * Node type patterns for STRING UTILITY nodes (process but don't store prompts)
  * These pass strings through but aren't prompt sources themselves
  */
@@ -659,6 +670,18 @@ export function detectAllPrompts() {
 }
 
 /**
+ * Check if a specific node:widget combination should never be detected
+ * @param {string} nodeType - Node type
+ * @param {string} widgetName - Widget name
+ * @returns {boolean} True if this combination should never be detected
+ */
+function isNeverDetectWidget(nodeType, widgetName) {
+  if (!nodeType || !widgetName) return false;
+  const key = `${nodeType}:${widgetName}`;
+  return NEVER_DETECT_WIDGETS.includes(key);
+}
+
+/**
  * Check if a widget name indicates auto-populated content
  * @param {string} widgetName - Widget name to check
  * @returns {boolean} True if widget appears to be auto-populated
@@ -701,6 +724,62 @@ function containsWildcardSyntax(value) {
   return /\{[^}]+\|[^}]+\}/.test(value) ||  // {opt1|opt2}
          /__[^_]+__/.test(value) ||          // __wildcard__
          /\$\{[^}]+\}/.test(value);          // ${variable}
+}
+
+/**
+ * Check if a widget is receiving its value from an input connection
+ * (i.e., it's a passthrough, not the source of the value)
+ * @param {Object} node - LiteGraph node
+ * @param {Object} widget - Widget to check
+ * @returns {boolean} True if widget has an input connection
+ */
+function widgetHasInputConnection(node, widget) {
+  if (!node?.inputs || !widget) return false;
+
+  // Check if there's an input slot with the same name as the widget
+  // This is how ComfyUI handles "convert widget to input"
+  const inputSlot = node.inputs.find(input =>
+    input.name === widget.name ||
+    input.name === widget.name.toLowerCase() ||
+    input.widget?.name === widget.name
+  );
+
+  // If there's an input slot AND it has a connection, the value comes from elsewhere
+  if (inputSlot && inputSlot.link != null) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a value looks like a default/placeholder that shouldn't be backed up
+ * @param {string} value - Value to check
+ * @param {string} widgetName - Widget name for context
+ * @returns {boolean} True if value appears to be a default/placeholder
+ */
+function isDefaultOrPlaceholderValue(value, widgetName) {
+  if (typeof value !== 'string') return true;
+
+  const trimmed = value.trim().toLowerCase();
+
+  // Empty is definitely default
+  if (trimmed.length === 0) return true;
+
+  // Very short values that match widget name are likely defaults
+  if (trimmed.length <= 10) {
+    const widgetLower = (widgetName || '').toLowerCase();
+    if (trimmed === widgetLower) return true;
+    if (trimmed === 'text') return true;
+    if (trimmed === 'prompt') return true;
+    if (trimmed === 'positive') return true;
+    if (trimmed === 'negative') return true;
+    if (trimmed === 'enter text') return true;
+    if (trimmed === 'enter prompt') return true;
+    if (trimmed === 'type here') return true;
+  }
+
+  return false;
 }
 
 /**
@@ -764,6 +843,14 @@ export function getDetectedPrompts() {
       const value = r.widget?.value;
 
       // === EXCLUSIONS (always filter out in precise mode) ===
+
+      // 0. Skip explicitly listed node:widget combinations that should NEVER be detected
+      if (isNeverDetectWidget(nodeType, widgetName)) {
+        if (Storage.isDebugEnabled()) {
+          console.log(`Alexandria Precise: Excluding never-detect widget "${widgetName}" on ${nodeType}`);
+        }
+        return false;
+      }
 
       // 1. Skip auto-populated widgets (populated_text, output_text, etc.)
       if (isAutoPopulatedWidget(widgetName)) {
