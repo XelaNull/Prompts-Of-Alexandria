@@ -834,9 +834,11 @@ export function getDetectedPrompts() {
   const mode = Storage.getDetectionMode();
 
   let filtered = Array.from(results.values()).filter(r => !r.excluded);
+  const beforeCount = filtered.length;
 
   // In precise mode, apply stricter filtering
   if (mode === 'precise') {
+    console.log(`Alexandria: Precise mode active, filtering ${beforeCount} detected widgets...`);
     filtered = filtered.filter(r => {
       const nodeType = r.node?.type || '';
       const widgetName = r.widget?.name || '';
@@ -911,6 +913,9 @@ export function getDetectedPrompts() {
       // Default: exclude uncertain detections
       return false;
     });
+    console.log(`Alexandria: Precise mode filtered ${beforeCount} -> ${filtered.length} widgets`);
+  } else {
+    console.log(`Alexandria: Lazy mode active, returning all ${beforeCount} detected widgets`);
   }
 
   return filtered.sort((a, b) => b.confidence - a.confidence);
@@ -963,13 +968,24 @@ function findNodeGroup(node) {
 /**
  * Get all workflow widgets with detection status
  * Used by the UI to show all nodes and which widgets are detected
+ * Respects the current detection mode (lazy vs precise)
  *
  * @returns {Array} Array of node data with widgets
  */
 export function getAllWorkflowWidgets() {
   if (!app.graph?._nodes) return [];
 
-  const detectedPrompts = detectAllPrompts();
+  // Use getDetectedPrompts() to get mode-filtered results
+  const filteredPrompts = getDetectedPrompts();
+
+  // Build a Set of detected keys for fast lookup
+  const detectedKeys = new Set();
+  for (const p of filteredPrompts) {
+    detectedKeys.add(`${p.node.id}:${p.widget.name}`);
+  }
+
+  // Also get raw detection for confidence/method info
+  const rawDetection = detectAllPrompts();
   const nodes = [];
 
   for (const node of app.graph._nodes) {
@@ -992,13 +1008,15 @@ export function getAllWorkflowWidgets() {
 
     for (const widget of node.widgets) {
       const key = `${node.id}:${widget.name}`;
-      const detection = detectedPrompts.get(key);
+      const detection = rawDetection.get(key);
 
+      // isDetected is based on the filtered results (respects detection mode)
+      // confidence/method come from raw detection for display purposes
       nodeData.widgets.push({
         name: widget.name,
         value: widget.value,
         type: widget.type,
-        isDetected: !!detection && !detection.excluded,
+        isDetected: detectedKeys.has(key),
         isExcluded: detection?.excluded || false,
         confidence: detection?.confidence || 0,
         method: detection?.method || null,
