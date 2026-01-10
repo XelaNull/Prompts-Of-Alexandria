@@ -48,12 +48,14 @@ Click the **book icon** in ComfyUI's left sidebar to see your templates at a gla
 
 ### Saving Templates
 
+**From Full Panel:**
 1. Open the **Full Panel** (via sidebar or Control node)
-2. Click the **Browse Widgets** tab
-3. Detected prompts are pre-selected (checkboxes)
-4. Optionally select/deselect widgets manually
-5. Click **Save as Template**
-6. Enter a name and confirm
+2. Click **Save**
+3. Review detected widgets (optionally adjust selections)
+4. Click **Save** to confirm
+
+**From Control Node:**
+- Just click **Save Now** on the Alexandria Control Panel node
 
 ### Loading Templates
 
