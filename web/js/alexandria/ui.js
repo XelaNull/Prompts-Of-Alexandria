@@ -1740,7 +1740,7 @@ function attachDragDropListeners(containerEl = panel) {
     };
 
     // Drop
-    item.ondrop = (e) => {
+    item.ondrop = async (e) => {
       e.preventDefault();
       item.classList.remove('alexandria-drag-over');
 
@@ -1754,9 +1754,9 @@ function attachDragDropListeners(containerEl = panel) {
       const targetIndex = items.findIndex(i => i.dataset.templateId === targetId);
 
       if (targetIndex >= 0) {
-        Storage.reorderTemplate(draggedId, targetIndex);
+        await Storage.reorderTemplate(draggedId, targetIndex);
         refresh();
-        showToast('Template order updated');
+        showToast('Template order saved to server');
       }
     };
   });

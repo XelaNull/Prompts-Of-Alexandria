@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
   },
   debug: false,
   detectionMode: 'precise', // 'lazy' = include more widgets, 'precise' = only high-confidence prompts
+  templateOrder: [], // Custom template ordering (array of template IDs)
 };
 
 // Storage key for tracked workflow name (kept in localStorage as it's session-specific)
@@ -21,9 +22,6 @@ const WORKFLOW_NAME_KEY = 'alexandria_current_workflow';
 
 // Storage key for current storage directory
 const STORAGE_DIR_KEY = 'alexandria_storage_directory';
-
-// Template order key for localStorage
-const TEMPLATE_ORDER_KEY = 'alexandria_template_order';
 
 // Cache for current storage directory from backend
 let _currentStorageDir = null;
@@ -605,18 +603,23 @@ export function getTemplateByName(name) {
 
 /**
  * Get the custom template order (array of template IDs)
+ * Now reads from server-side settings for cross-device sync
  * @returns {Array} Array of template IDs in custom order
  */
 export function getTemplateOrder() {
-  return safeGet(TEMPLATE_ORDER_KEY, []);
+  const settings = getSettings();
+  return settings.templateOrder || [];
 }
 
 /**
- * Save custom template order
+ * Save custom template order to server
  * @param {Array} order - Array of template IDs in desired order
+ * @returns {Promise<boolean>} Success status
  */
-export function saveTemplateOrder(order) {
-  return safeSet(TEMPLATE_ORDER_KEY, order);
+export async function saveTemplateOrder(order) {
+  const settings = getSettings();
+  settings.templateOrder = order;
+  return saveSettings(settings);
 }
 
 /**
@@ -652,10 +655,12 @@ export function getTemplatesSorted() {
 
 /**
  * Move a template to a new position in the order
+ * Saves to server for cross-device sync
  * @param {string} templateId - Template ID to move
  * @param {number} newIndex - New position index
+ * @returns {Promise<Array>} Updated order array
  */
-export function reorderTemplate(templateId, newIndex) {
+export async function reorderTemplate(templateId, newIndex) {
   const templates = getTemplates();
   let order = getTemplateOrder();
 
@@ -679,7 +684,7 @@ export function reorderTemplate(templateId, newIndex) {
   const existingIds = new Set(templates.map(t => t.id));
   order = order.filter(id => existingIds.has(id));
 
-  saveTemplateOrder(order);
+  await saveTemplateOrder(order);
   return order;
 }
 
