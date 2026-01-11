@@ -234,6 +234,9 @@ def _load_templates_from_directory():
 
     templates = []
     for file_path in storage_path.glob("*.json"):
+        # Skip settings and internal files (start with underscore)
+        if file_path.name.startswith('_'):
+            continue
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 template = json.load(f)
@@ -242,6 +245,10 @@ def _load_templates_from_directory():
                     template['name'] = file_path.stem
                 if 'id' not in template:
                     template['id'] = hashlib.md5(file_path.stem.encode()).hexdigest()[:16]
+                # Validate versions structure - skip templates without valid versions
+                if not isinstance(template.get('versions'), list) or len(template.get('versions', [])) == 0:
+                    print(f"Alexandria: Skipping template with invalid versions: {file_path}")
+                    continue
                 template['_file_path'] = str(file_path)
                 templates.append(template)
         except Exception as e:

@@ -2115,14 +2115,27 @@ function renderTemplatePreview() {
     return renderTemplatePreview();
   }
 
+  // Validate template has proper versions structure
+  if (!Array.isArray(template.versions) || template.versions.length === 0) {
+    return `
+      <div class="alexandria-preview-empty">
+        <div class="alexandria-preview-empty-icon">⚠️</div>
+        <div class="alexandria-preview-empty-text">Invalid template data</div>
+        <div class="alexandria-preview-empty-hint">This template has no version history. It may need to be re-saved.</div>
+      </div>
+    `;
+  }
+
   // Determine which version to display
   const versionIndex = selectedVersionIndex !== null
     ? selectedVersionIndex
-    : template.currentVersionIndex;
-  const version = template.versions[versionIndex];
+    : (template.currentVersionIndex ?? 0);
+  // Ensure versionIndex is within bounds
+  const safeVersionIndex = Math.min(Math.max(0, versionIndex), template.versions.length - 1);
+  const version = template.versions[safeVersionIndex];
   const entries = version?.entries || [];
-  const versionCount = template.versions?.length || 1;
-  const isLatestVersion = versionIndex === template.currentVersionIndex;
+  const versionCount = template.versions.length;
+  const isLatestVersion = safeVersionIndex === (template.currentVersionIndex ?? 0);
 
   if (entries.length === 0) {
     return `<div class="alexandria-preview-empty"><div class="alexandria-preview-empty-text">Template is empty</div></div>`;
