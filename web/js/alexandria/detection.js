@@ -101,6 +101,8 @@ const WIDGET_NAME_PATTERNS = [
 
 /**
  * Widget names that are NOT prompts (false positive prevention)
+ * NOTE: Do NOT exclude model/checkpoint - users often want to save these
+ * Loras are excluded by default (can be included via Configure Detection)
  */
 const NON_PROMPT_WIDGET_NAMES = [
   'filename', 'path', 'directory', 'folder',
@@ -108,7 +110,7 @@ const NON_PROMPT_WIDGET_NAMES = [
   'json', 'yaml', 'config', 'settings',
   'code', 'script', 'command',
   'url', 'uri', 'link',
-  'model', 'checkpoint', 'lora',
+  'lora',
   'api_key', 'token', 'secret',
 ];
 
