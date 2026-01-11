@@ -430,6 +430,12 @@ const CSS = `
     justify-content: space-between;
     align-items: center;
     gap: 6px;
+    /* iOS touch improvements */
+    -webkit-tap-highlight-color: rgba(96, 165, 250, 0.3);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
   }
   .alexandria-template-item:hover {
     background: var(--alexandria-bg-tertiary);

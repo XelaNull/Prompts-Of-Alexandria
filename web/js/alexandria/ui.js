@@ -1160,11 +1160,15 @@ function renderLoadContent(panelEl) {
 
 /**
  * Attach listeners for template list in load mode
+ * Uses both click and touchend for iOS/iPad compatibility
  */
 function attachTemplateListListeners(panelEl) {
   panelEl.querySelectorAll('.alexandria-template-item').forEach(item => {
-    item.onclick = (e) => {
+    // Handler for selecting a template
+    const handleSelect = (e) => {
+      // Don't select if clicking action buttons
       if (e.target.closest('[data-action]')) return;
+      e.preventDefault();
       selectedTemplateId = item.dataset.templateId;
       selectedVersionIndex = null; // Reset to latest version
       versionHistoryExpanded = false;
@@ -1172,20 +1176,46 @@ function attachTemplateListListeners(panelEl) {
       collapsedPreviewNodes.clear();
       renderLoadContent(panelEl);
     };
+
+    // Use addEventListener for better cross-platform support
+    item.addEventListener('click', handleSelect);
+
+    // Add touchend for iOS/iPad - some iOS versions don't fire click reliably
+    item.addEventListener('touchend', (e) => {
+      // Only handle if this is a simple tap (not a scroll gesture)
+      if (e.changedTouches && e.changedTouches.length === 1) {
+        // Small delay to distinguish tap from scroll
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && (target === item || item.contains(target))) {
+          // Don't fire if an action button was touched
+          if (!target.closest('[data-action]')) {
+            e.preventDefault();
+            handleSelect(e);
+          }
+        }
+      }
+    }, { passive: false });
   });
 
   panelEl.querySelectorAll('[data-action="rename-template"]').forEach(btn => {
-    btn.onclick = (e) => {
+    const handleRename = (e) => {
       e.stopPropagation();
+      e.preventDefault();
       showRenameDialog(btn.dataset.templateId);
     };
+    btn.addEventListener('click', handleRename);
+    btn.addEventListener('touchend', handleRename, { passive: false });
   });
 
   panelEl.querySelectorAll('[data-action="delete-template"]').forEach(btn => {
-    btn.onclick = (e) => {
+    const handleDelete = (e) => {
       e.stopPropagation();
+      e.preventDefault();
       confirmDeleteTemplate(btn.dataset.templateId);
     };
+    btn.addEventListener('click', handleDelete);
+    btn.addEventListener('touchend', handleDelete, { passive: false });
   });
 
   // Toggle other workflows section
