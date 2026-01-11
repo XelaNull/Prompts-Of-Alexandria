@@ -1151,8 +1151,19 @@ function renderLoadContent(panelEl) {
   console.log('Alexandria DEBUG: First 500 chars of preview:', previewHtml.substring(0, 500));
   content.innerHTML = previewHtml;
   console.log('Alexandria DEBUG: content element after innerHTML:', content.innerHTML.length, 'chars');
-  // Visual debug indicator
+  // Visual debug indicators
   content.style.border = '2px solid red';
+  content.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+  content.style.minHeight = '200px';
+  // Also style the parent .alexandria-main
+  const mainEl = panelEl.querySelector('.alexandria-main');
+  if (mainEl) {
+    mainEl.style.border = '2px solid blue';
+    mainEl.style.backgroundColor = 'rgba(0, 0, 255, 0.1)';
+    console.log('Alexandria DEBUG: .alexandria-main found, dimensions:', mainEl.offsetWidth, 'x', mainEl.offsetHeight);
+  } else {
+    console.error('Alexandria DEBUG: .alexandria-main NOT FOUND!');
+  }
   attachPreviewListeners(panelEl);
 
   // Update button states
