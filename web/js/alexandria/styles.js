@@ -356,14 +356,19 @@ const CSS = `
   /* ============ Body Layout ============ */
   .alexandria-body {
     display: flex;
-    flex: 1;
+    flex: 1 1 auto;
+    flex-direction: row;
     overflow: hidden;
+    min-height: 0;
   }
 
   /* ============ Sidebar ============ */
   .alexandria-sidebar {
     width: 260px;
     min-width: 260px;
+    max-width: 260px;
+    flex-shrink: 0;
+    flex-grow: 0;
     background: var(--alexandria-bg-secondary);
     border-right: 1px solid var(--alexandria-border);
     display: flex;
@@ -494,7 +499,8 @@ const CSS = `
 
   /* ============ Main Content Area ============ */
   .alexandria-main {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
