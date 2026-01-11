@@ -1420,11 +1420,16 @@ function updateStatusBar() {
  * @returns {string} HTML string
  */
 function renderTemplateItem(template, showWorkflowTag = false) {
+  // Guard against invalid templates
+  if (!template || !Array.isArray(template.versions) || template.versions.length === 0) {
+    return ''; // Skip invalid templates
+  }
   const isSelected = template.id === selectedTemplateId;
-  const version = template.versions[template.currentVersionIndex];
+  const versionIndex = template.currentVersionIndex ?? 0;
+  const version = template.versions[versionIndex] || template.versions[0];
   const entryCount = version?.entries?.length || 0;
   const timeAgo = getTimeAgo(template.updatedAt);
-  const versionCount = template.versions?.length || 1;
+  const versionCount = template.versions.length;
   const workflowTag = showWorkflowTag && template.workflowName
     ? `<span class="alexandria-template-workflow-tag" title="${escapeHtml(template.workflowName)}">${escapeHtml(template.workflowName)}</span>`
     : '';
@@ -1448,11 +1453,20 @@ function renderTemplateItem(template, showWorkflowTag = false) {
 }
 
 /**
+ * Filter out templates with invalid/missing versions
+ * @param {Array} templates - Array of templates
+ * @returns {Array} Filtered array with only valid templates
+ */
+function filterValidTemplates(templates) {
+  return templates.filter(t => t && Array.isArray(t.versions) && t.versions.length > 0);
+}
+
+/**
  * Render the template list HTML
  * @returns {string} HTML string
  */
 function renderTemplateList() {
-  const allTemplates = Storage.getTemplates();
+  const allTemplates = filterValidTemplates(Storage.getTemplates());
 
   if (allTemplates.length === 0) {
     return `
@@ -1468,13 +1482,17 @@ function renderTemplateList() {
   const workflowIdentity = Detection.getWorkflowIdentity();
   const currentWorkflowId = workflowIdentity?.id || null;
   const currentWorkflowName = workflowIdentity?.name || null;
-  const currentWorkflowTemplates = currentWorkflowId
-    ? Storage.getTemplatesForWorkflow(currentWorkflowId, currentWorkflowName)
-    : [];
-  const otherWorkflowTemplates = currentWorkflowId
-    ? Storage.getTemplatesFromOtherWorkflows(currentWorkflowId, currentWorkflowName)
-    : [];
-  const legacyTemplates = Storage.getLegacyTemplates();
+  const currentWorkflowTemplates = filterValidTemplates(
+    currentWorkflowId
+      ? Storage.getTemplatesForWorkflow(currentWorkflowId, currentWorkflowName)
+      : []
+  );
+  const otherWorkflowTemplates = filterValidTemplates(
+    currentWorkflowId
+      ? Storage.getTemplatesFromOtherWorkflows(currentWorkflowId, currentWorkflowName)
+      : []
+  );
+  const legacyTemplates = filterValidTemplates(Storage.getLegacyTemplates());
 
   let html = '';
 
