@@ -1132,6 +1132,32 @@ export function getWorkflowIdentity() {
 }
 
 /**
+ * Check if a name indicates an unsaved/default workflow
+ * These patterns should not be treated as valid workflow names
+ * @param {string} name - Name to check
+ * @returns {boolean} True if this is an unsaved indicator
+ */
+function isUnsavedIndicator(name) {
+  if (!name) return true;
+  const lower = name.toLowerCase();
+  // Common patterns for unsaved workflows across platforms
+  const unsavedPatterns = [
+    'unsaved',
+    'untitled',
+    'new workflow',
+    'workflow',  // Just "Workflow" alone
+    '*',  // Leading asterisk often indicates unsaved
+  ];
+  // Check exact matches and patterns
+  if (lower === 'workflow') return true;
+  if (name.startsWith('*')) return true;  // "*Unsaved Workspace" etc.
+  for (const pattern of unsavedPatterns) {
+    if (lower.includes(pattern)) return true;
+  }
+  return false;
+}
+
+/**
  * Try to get the workflow filename from ComfyUI
  * Uses multiple detection methods for different ComfyUI versions
  * @returns {string|null} Filename or null if not saved/available
@@ -1152,11 +1178,18 @@ function getWorkflowFilename() {
       // Patterns: "Name - ComfyUI", "ComfyUI - Name", "Name.json - ComfyUI"
       let match = docTitle.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
       if (match && match[1] && match[1].trim() !== '') {
-        return match[1].trim();
+        const extractedName = match[1].trim();
+        // Filter out unsaved/default indicators (iPad/mobile may show these)
+        if (!isUnsavedIndicator(extractedName)) {
+          return extractedName;
+        }
       }
       match = docTitle.match(/^ComfyUI\s*[-–—]\s*(.+?)$/i);
       if (match && match[1] && match[1].trim() !== '') {
-        return match[1].trim();
+        const extractedName = match[1].trim();
+        if (!isUnsavedIndicator(extractedName)) {
+          return extractedName;
+        }
       }
     }
 

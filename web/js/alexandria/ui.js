@@ -248,22 +248,60 @@ function setupWorkflowHooks() {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       // After save, check if document title updated
       setTimeout(async () => {
-        if (document.title && document.title !== 'ComfyUI') {
-          const match = document.title.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
-          if (match) {
-            const name = match[1].trim().replace(/\.json$/i, '');
-            const workflowId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-            // Update tracking (overrides likely already loaded)
-            Storage.setTrackedWorkflowName(name);
-            Storage.setCurrentWorkflowOverridesId(workflowId);
-            console.log('Alexandria: Updated workflow context from save:', name);
-          }
-        }
+        updateWorkflowFromTitle();
       }, 500);
     }
   });
 
+  // Watch for title changes using MutationObserver (works on iPad/mobile where Ctrl+S isn't used)
+  // This catches saves done via touch/menu interface
+  let lastTitle = document.title;
+  const titleObserver = new MutationObserver(() => {
+    if (document.title !== lastTitle) {
+      lastTitle = document.title;
+      // Debounce to avoid rapid updates
+      clearTimeout(titleObserver._debounce);
+      titleObserver._debounce = setTimeout(() => {
+        updateWorkflowFromTitle();
+      }, 300);
+    }
+  });
+
+  // Observe the title element
+  const titleElement = document.querySelector('title');
+  if (titleElement) {
+    titleObserver.observe(titleElement, { childList: true, characterData: true, subtree: true });
+  }
+
+  // Also poll periodically as a fallback (some mobile browsers don't trigger MutationObserver on title)
+  setInterval(() => {
+    if (document.title !== lastTitle) {
+      lastTitle = document.title;
+      updateWorkflowFromTitle();
+    }
+  }, 2000);
+
   console.log('Alexandria: Workflow tracking hooks installed');
+}
+
+/**
+ * Helper to update workflow context from document title
+ */
+function updateWorkflowFromTitle() {
+  if (document.title && document.title !== 'ComfyUI') {
+    const match = document.title.match(/^(.+?)\s*[-–—]\s*ComfyUI$/i);
+    if (match) {
+      let name = match[1].trim().replace(/\.json$/i, '');
+      // Filter out unsaved indicators
+      if (name.startsWith('*') || name.toLowerCase().includes('unsaved')) {
+        return; // Don't track unsaved workflow names
+      }
+      const workflowId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      Storage.setTrackedWorkflowName(name);
+      Storage.setCurrentWorkflowOverridesId(workflowId);
+      console.log('Alexandria: Updated workflow context from title:', name);
+    }
+  }
 }
 
 /**
