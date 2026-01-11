@@ -109,7 +109,9 @@ export async function saveTemplateToFile(template) {
  */
 export async function loadTemplatesFromFiles() {
   try {
-    const response = await fetch('/alexandria/templates');
+    const response = await fetch('/alexandria/templates', {
+      cache: 'no-store' // Always fetch fresh templates for cross-device sync
+    });
     const data = await response.json();
     if (data.status === 'ok') {
       return data.templates || [];
@@ -253,7 +255,9 @@ function safeSet(key, value) {
  */
 export async function loadSettingsFromServer() {
   try {
-    const response = await fetch('/alexandria/settings');
+    const response = await fetch('/alexandria/settings', {
+      cache: 'no-store' // Always fetch fresh settings for cross-device sync
+    });
     const data = await response.json();
     if (data.status === 'ok') {
       _settingsCache = { ...DEFAULT_SETTINGS, ...data.settings };
@@ -423,7 +427,9 @@ export async function loadManualSelectionsFromServer(workflowId) {
   }
 
   try {
-    const response = await fetch(`/alexandria/workflow-overrides/${encodeURIComponent(workflowId)}`);
+    const response = await fetch(`/alexandria/workflow-overrides/${encodeURIComponent(workflowId)}`, {
+      cache: 'no-store' // Always fetch fresh overrides for cross-device sync
+    });
     const data = await response.json();
     if (data.status === 'ok') {
       _manualSelectionsCache = data.overrides?.manualSelections || {};
