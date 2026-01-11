@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
   debug: false,
   detectionMode: 'precise', // 'lazy' = include more widgets, 'precise' = only high-confidence prompts
   templateOrder: [], // Custom template ordering (array of template IDs)
+  filterType: 'all', // Configure mode filter: 'all', 'detected', or 'overrides'
 };
 
 // Storage key for tracked workflow name (kept in localStorage as it's session-specific)
@@ -340,6 +341,25 @@ export function getDetectionMode() {
 export async function setDetectionMode(mode) {
   const settings = getSettings();
   settings.detectionMode = mode;
+  return saveSettings(settings);
+}
+
+/**
+ * Get current filter type for Configure mode
+ * @returns {string} 'all', 'detected', or 'overrides'
+ */
+export function getFilterType() {
+  return getSettings().filterType || 'all';
+}
+
+/**
+ * Set filter type (async, saves to server)
+ * @param {string} type - 'all', 'detected', or 'overrides'
+ * @returns {Promise<boolean>} Success status
+ */
+export async function setFilterType(type) {
+  const settings = getSettings();
+  settings.filterType = type;
   return saveSettings(settings);
 }
 

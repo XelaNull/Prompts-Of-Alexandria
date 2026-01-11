@@ -358,9 +358,18 @@ export async function open(mode = 'landing') {
   }
 
   // Refresh settings and templates from server (ensures cross-PC sync)
-  // Settings includes template order, which may have changed on another device
+  // Settings includes template order and filterType, which may have changed on another device
   await Storage.loadSettingsFromServer();
   await Storage.refreshTemplatesFromServer();
+
+  // Load filterType from server settings
+  filterType = Storage.getFilterType();
+
+  // Refresh manual selections for current workflow (Include/Exclude/Auto overrides)
+  const workflowId = Storage.getCurrentWorkflowOverridesId();
+  if (workflowId) {
+    await Storage.loadManualSelectionsFromServer(workflowId);
+  }
 
   panel = createPanel();
   document.body.appendChild(panel);
@@ -695,10 +704,11 @@ function attachCreateListeners(panelEl) {
 
   // Filters
   panelEl.querySelectorAll('.alexandria-filter-btn').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       panelEl.querySelectorAll('.alexandria-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       filterType = btn.dataset.filter;
+      await Storage.setFilterType(filterType); // Save to server for cross-device sync
       renderCreateContent(panelEl);
     };
   });
@@ -761,10 +771,11 @@ function attachConfigureListeners(panelEl) {
 
   // Filters
   panelEl.querySelectorAll('.alexandria-filter-btn').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       panelEl.querySelectorAll('.alexandria-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       filterType = btn.dataset.filter;
+      await Storage.setFilterType(filterType); // Save to server for cross-device sync
       renderConfigureContent(panelEl);
     };
   });
@@ -3274,10 +3285,11 @@ export function createEmbeddedPanel() {
 
   // Filter buttons
   panelEl.querySelectorAll('.alexandria-filter-btn').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       panelEl.querySelectorAll('.alexandria-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       filterType = btn.dataset.filter;
+      await Storage.setFilterType(filterType); // Save to server for cross-device sync
       refreshEmbeddedContent(panelEl);
     };
   });
