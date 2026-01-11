@@ -1141,10 +1141,18 @@ function renderLoadContent(panelEl) {
 
   // Preview
   const content = panelEl.querySelector('.alexandria-content');
+  console.log('Alexandria DEBUG: content element found:', !!content, content);
+  if (!content) {
+    console.error('Alexandria DEBUG: .alexandria-content element NOT FOUND!');
+    return;
+  }
   const previewHtml = renderTemplatePreview();
   console.log('Alexandria DEBUG: renderTemplatePreview returned', previewHtml.length, 'chars');
+  console.log('Alexandria DEBUG: First 500 chars of preview:', previewHtml.substring(0, 500));
   content.innerHTML = previewHtml;
   console.log('Alexandria DEBUG: content element after innerHTML:', content.innerHTML.length, 'chars');
+  // Visual debug indicator
+  content.style.border = '2px solid red';
   attachPreviewListeners(panelEl);
 
   // Update button states
