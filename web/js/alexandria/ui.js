@@ -1133,7 +1133,6 @@ function attachLoadListeners(panelEl) {
  * Render content for load mode
  */
 function renderLoadContent(panelEl) {
-  console.log('Alexandria DEBUG: renderLoadContent called');
   // Template list
   const templateList = panelEl.querySelector('.alexandria-template-list');
   templateList.innerHTML = renderTemplateList();
@@ -1141,29 +1140,7 @@ function renderLoadContent(panelEl) {
 
   // Preview
   const content = panelEl.querySelector('.alexandria-content');
-  console.log('Alexandria DEBUG: content element found:', !!content, content);
-  if (!content) {
-    console.error('Alexandria DEBUG: .alexandria-content element NOT FOUND!');
-    return;
-  }
-  const previewHtml = renderTemplatePreview();
-  console.log('Alexandria DEBUG: renderTemplatePreview returned', previewHtml.length, 'chars');
-  console.log('Alexandria DEBUG: First 500 chars of preview:', previewHtml.substring(0, 500));
-  content.innerHTML = previewHtml;
-  console.log('Alexandria DEBUG: content element after innerHTML:', content.innerHTML.length, 'chars');
-  // Visual debug indicators
-  content.style.border = '2px solid red';
-  content.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-  content.style.minHeight = '200px';
-  // Also style the parent .alexandria-main
-  const mainEl = panelEl.querySelector('.alexandria-main');
-  if (mainEl) {
-    mainEl.style.border = '2px solid blue';
-    mainEl.style.backgroundColor = 'rgba(0, 0, 255, 0.1)';
-    console.log('Alexandria DEBUG: .alexandria-main found, dimensions:', mainEl.offsetWidth, 'x', mainEl.offsetHeight);
-  } else {
-    console.error('Alexandria DEBUG: .alexandria-main NOT FOUND!');
-  }
+  content.innerHTML = renderTemplatePreview();
   attachPreviewListeners(panelEl);
 
   // Update button states
@@ -1188,7 +1165,6 @@ function attachTemplateListListeners(panelEl) {
   panelEl.querySelectorAll('.alexandria-template-item').forEach(item => {
     item.onclick = (e) => {
       if (e.target.closest('[data-action]')) return;
-      console.log('Alexandria DEBUG: Template item clicked, id =', item.dataset.templateId);
       selectedTemplateId = item.dataset.templateId;
       selectedVersionIndex = null; // Reset to latest version
       versionHistoryExpanded = false;
@@ -2103,48 +2079,43 @@ function renderDiffEntry(diff) {
  * @returns {string} HTML string
  */
 function renderTemplatePreview() {
-  try {
-    console.log('Alexandria DEBUG: renderTemplatePreview called, selectedTemplateId =', selectedTemplateId);
-    if (!selectedTemplateId) {
-      const templates = Storage.getTemplates();
-      if (templates.length === 0) {
-        return `
-          <div class="alexandria-preview-empty">
-            <div class="alexandria-preview-empty-icon">💡</div>
-            <div class="alexandria-preview-empty-text">Getting Started</div>
-            <div class="alexandria-preview-empty-hint">
-              <ol style="text-align: left; margin: 16px auto; max-width: 300px; line-height: 1.8;">
-                <li>Go to the <strong>"Current Prompts"</strong> tab</li>
-                <li>Review the prompts we detected</li>
-                <li>Click <strong>"💾 Save as Template"</strong></li>
-                <li>Your prompts are now saved!</li>
-              </ol>
-              <p style="margin-top: 16px; color: var(--alexandria-text-muted);">
-                Later, load any template to restore your prompts instantly.
-              </p>
-            </div>
-          </div>
-        `;
-      }
+  if (!selectedTemplateId) {
+    const templates = Storage.getTemplates();
+    if (templates.length === 0) {
       return `
         <div class="alexandria-preview-empty">
-          <div class="alexandria-preview-empty-icon">👈</div>
-          <div class="alexandria-preview-empty-text">Select a template to preview</div>
-          <div class="alexandria-preview-empty-hint">Click a template on the left to see its contents</div>
+          <div class="alexandria-preview-empty-icon">💡</div>
+          <div class="alexandria-preview-empty-text">Getting Started</div>
+          <div class="alexandria-preview-empty-hint">
+            <ol style="text-align: left; margin: 16px auto; max-width: 300px; line-height: 1.8;">
+              <li>Go to the <strong>"Current Prompts"</strong> tab</li>
+              <li>Review the prompts we detected</li>
+              <li>Click <strong>"💾 Save as Template"</strong></li>
+              <li>Your prompts are now saved!</li>
+            </ol>
+            <p style="margin-top: 16px; color: var(--alexandria-text-muted);">
+              Later, load any template to restore your prompts instantly.
+            </p>
+          </div>
         </div>
       `;
     }
+    return `
+      <div class="alexandria-preview-empty">
+        <div class="alexandria-preview-empty-icon">👈</div>
+        <div class="alexandria-preview-empty-text">Select a template to preview</div>
+        <div class="alexandria-preview-empty-hint">Click a template on the left to see its contents</div>
+      </div>
+    `;
+  }
 
   const template = Storage.getTemplate(selectedTemplateId);
-  console.log('Alexandria DEBUG: template =', template);
   if (!template) {
-    console.log('Alexandria DEBUG: template not found, resetting selectedTemplateId');
     selectedTemplateId = null;
     return renderTemplatePreview();
   }
 
   // Validate template has proper versions structure
-  console.log('Alexandria DEBUG: template.versions =', template.versions, 'length =', template.versions?.length);
   if (!Array.isArray(template.versions) || template.versions.length === 0) {
     return `
       <div class="alexandria-preview-empty">
@@ -2313,14 +2284,6 @@ function renderTemplatePreview() {
   }
 
   return html;
-  } catch (error) {
-    console.error('Alexandria DEBUG: Error in renderTemplatePreview:', error);
-    return `<div class="alexandria-preview-empty">
-      <div class="alexandria-preview-empty-icon">❌</div>
-      <div class="alexandria-preview-empty-text">Error rendering preview</div>
-      <div class="alexandria-preview-empty-hint">${error.message}</div>
-    </div>`;
-  }
 }
 
 /**
