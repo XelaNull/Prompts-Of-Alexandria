@@ -10,10 +10,7 @@ const getApp = () => window.comfyAPI?.app?.app;
 const app = getApp(); // May be undefined if loaded directly
 import * as Storage from "./storage.js";
 import * as Detection from "./detection.js";
-
-// ============ Version ============
-
-const VERSION = "1.1.0";
+import { VERSION } from "./version.js";
 
 // ============ State ============
 

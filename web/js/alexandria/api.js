@@ -11,6 +11,7 @@ const app = getApp(); // May be undefined if loaded directly
 import * as Storage from "./storage.js";
 import * as Detection from "./detection.js";
 import * as UI from "./ui.js";
+import { VERSION } from "./version.js";
 
 /**
  * Find a node matching a template entry using multi-criteria matching:
@@ -207,7 +208,7 @@ export function createGlobalAPI() {
     disableDebug: () => Storage.saveSettings({ ...Storage.getSettings(), debug: false }),
 
     // Version
-    version: '1.0.0',
+    version: VERSION,
   };
 
   return api;
