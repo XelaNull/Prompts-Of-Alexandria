@@ -1133,6 +1133,7 @@ function attachLoadListeners(panelEl) {
  * Render content for load mode
  */
 function renderLoadContent(panelEl) {
+  console.log('Alexandria DEBUG: renderLoadContent called');
   // Template list
   const templateList = panelEl.querySelector('.alexandria-template-list');
   templateList.innerHTML = renderTemplateList();
@@ -1140,7 +1141,10 @@ function renderLoadContent(panelEl) {
 
   // Preview
   const content = panelEl.querySelector('.alexandria-content');
-  content.innerHTML = renderTemplatePreview();
+  const previewHtml = renderTemplatePreview();
+  console.log('Alexandria DEBUG: renderTemplatePreview returned', previewHtml.length, 'chars');
+  content.innerHTML = previewHtml;
+  console.log('Alexandria DEBUG: content element after innerHTML:', content.innerHTML.length, 'chars');
   attachPreviewListeners(panelEl);
 
   // Update button states
@@ -1165,6 +1169,7 @@ function attachTemplateListListeners(panelEl) {
   panelEl.querySelectorAll('.alexandria-template-item').forEach(item => {
     item.onclick = (e) => {
       if (e.target.closest('[data-action]')) return;
+      console.log('Alexandria DEBUG: Template item clicked, id =', item.dataset.templateId);
       selectedTemplateId = item.dataset.templateId;
       selectedVersionIndex = null; // Reset to latest version
       versionHistoryExpanded = false;
@@ -2079,43 +2084,48 @@ function renderDiffEntry(diff) {
  * @returns {string} HTML string
  */
 function renderTemplatePreview() {
-  if (!selectedTemplateId) {
-    const templates = Storage.getTemplates();
-    if (templates.length === 0) {
+  try {
+    console.log('Alexandria DEBUG: renderTemplatePreview called, selectedTemplateId =', selectedTemplateId);
+    if (!selectedTemplateId) {
+      const templates = Storage.getTemplates();
+      if (templates.length === 0) {
+        return `
+          <div class="alexandria-preview-empty">
+            <div class="alexandria-preview-empty-icon">💡</div>
+            <div class="alexandria-preview-empty-text">Getting Started</div>
+            <div class="alexandria-preview-empty-hint">
+              <ol style="text-align: left; margin: 16px auto; max-width: 300px; line-height: 1.8;">
+                <li>Go to the <strong>"Current Prompts"</strong> tab</li>
+                <li>Review the prompts we detected</li>
+                <li>Click <strong>"💾 Save as Template"</strong></li>
+                <li>Your prompts are now saved!</li>
+              </ol>
+              <p style="margin-top: 16px; color: var(--alexandria-text-muted);">
+                Later, load any template to restore your prompts instantly.
+              </p>
+            </div>
+          </div>
+        `;
+      }
       return `
         <div class="alexandria-preview-empty">
-          <div class="alexandria-preview-empty-icon">💡</div>
-          <div class="alexandria-preview-empty-text">Getting Started</div>
-          <div class="alexandria-preview-empty-hint">
-            <ol style="text-align: left; margin: 16px auto; max-width: 300px; line-height: 1.8;">
-              <li>Go to the <strong>"Current Prompts"</strong> tab</li>
-              <li>Review the prompts we detected</li>
-              <li>Click <strong>"💾 Save as Template"</strong></li>
-              <li>Your prompts are now saved!</li>
-            </ol>
-            <p style="margin-top: 16px; color: var(--alexandria-text-muted);">
-              Later, load any template to restore your prompts instantly.
-            </p>
-          </div>
+          <div class="alexandria-preview-empty-icon">👈</div>
+          <div class="alexandria-preview-empty-text">Select a template to preview</div>
+          <div class="alexandria-preview-empty-hint">Click a template on the left to see its contents</div>
         </div>
       `;
     }
-    return `
-      <div class="alexandria-preview-empty">
-        <div class="alexandria-preview-empty-icon">👈</div>
-        <div class="alexandria-preview-empty-text">Select a template to preview</div>
-        <div class="alexandria-preview-empty-hint">Click a template on the left to see its contents</div>
-      </div>
-    `;
-  }
 
   const template = Storage.getTemplate(selectedTemplateId);
+  console.log('Alexandria DEBUG: template =', template);
   if (!template) {
+    console.log('Alexandria DEBUG: template not found, resetting selectedTemplateId');
     selectedTemplateId = null;
     return renderTemplatePreview();
   }
 
   // Validate template has proper versions structure
+  console.log('Alexandria DEBUG: template.versions =', template.versions, 'length =', template.versions?.length);
   if (!Array.isArray(template.versions) || template.versions.length === 0) {
     return `
       <div class="alexandria-preview-empty">
@@ -2284,6 +2294,14 @@ function renderTemplatePreview() {
   }
 
   return html;
+  } catch (error) {
+    console.error('Alexandria DEBUG: Error in renderTemplatePreview:', error);
+    return `<div class="alexandria-preview-empty">
+      <div class="alexandria-preview-empty-icon">❌</div>
+      <div class="alexandria-preview-empty-text">Error rendering preview</div>
+      <div class="alexandria-preview-empty-hint">${error.message}</div>
+    </div>`;
+  }
 }
 
 /**
