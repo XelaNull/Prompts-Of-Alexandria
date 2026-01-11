@@ -357,7 +357,9 @@ export async function open(mode = 'landing') {
     selectedTemplateId = null;
   }
 
-  // Load templates from server (ensures cross-PC access)
+  // Refresh settings and templates from server (ensures cross-PC sync)
+  // Settings includes template order, which may have changed on another device
+  await Storage.loadSettingsFromServer();
   await Storage.refreshTemplatesFromServer();
 
   panel = createPanel();
