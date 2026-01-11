@@ -108,8 +108,10 @@ async function renderSidebarContent(container) {
 
   const templates = Storage.getTemplatesSorted();
   const trackedWorkflow = Storage.getTrackedWorkflowName();
-  const workflowTemplates = templates.filter(t => t.workflowName === trackedWorkflow || !t.workflowName);
-  const otherTemplates = templates.filter(t => t.workflowName && t.workflowName !== trackedWorkflow);
+  // Filter out templates with invalid/missing versions array
+  const validTemplates = templates.filter(t => t && Array.isArray(t.versions) && t.versions.length > 0);
+  const workflowTemplates = validTemplates.filter(t => t.workflowName === trackedWorkflow || !t.workflowName);
+  const otherTemplates = validTemplates.filter(t => t.workflowName && t.workflowName !== trackedWorkflow);
   const currentTemplateName = getCurrentTemplateName();
 
   workflowTemplates.forEach(t => {
